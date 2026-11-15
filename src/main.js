@@ -10,6 +10,7 @@ import { createFrameMeter } from './frameMeter.js';
 import { createXR } from './xr.js';
 
 const DEFAULT_SITE = 'jezero_delta';
+const DESKTOP_FOV = 70; // degrees, vertical
 
 // Which coarse regional grid (data/sites/<name>) surrounds a walk patch, when
 // the folder names differ.
@@ -85,7 +86,7 @@ async function start() {
   document.body.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 20000);
+  const camera = new THREE.PerspectiveCamera(DESKTOP_FOV, window.innerWidth / window.innerHeight, 0.1, 20000);
 
   createSky(scene);
 
@@ -132,6 +133,7 @@ async function start() {
 
   const resize = () => {
     if (renderer.xr.isPresenting) return; // the headset sets the size in VR
+    camera.fov = DESKTOP_FOV; // a VR session overwrites the field of view; put it back
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);

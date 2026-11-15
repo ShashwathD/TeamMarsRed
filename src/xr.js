@@ -143,6 +143,12 @@ function createMarker() {
   marker.name = 'teleport-marker';
   const ring = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.4, 40), material);
   const dot = new THREE.Mesh(new THREE.CircleGeometry(0.07, 20), material);
+  // Upright post, so the landing point is visible even when the ring is seen edge-on.
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.2, 8), material);
+  post.position.y = 0.6;
+  post.renderOrder = 900;
+  post.frustumCulled = false;
+  marker.add(post);
   for (const part of [ring, dot]) {
     part.rotation.x = -Math.PI / 2; // lie flat: the group's +y is the ground normal
     part.renderOrder = 900;
@@ -224,7 +230,7 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
       marker.quaternion.setFromUnitVectors(up, normal);
       marker.position.copy(p).addScaledVector(normal, 0.05);
       // Grow with distance so it can still be seen 40 m away.
-      marker.scale.setScalar(Math.max(1, origin.distanceTo(p) / 8));
+      marker.scale.setScalar(Math.max(1, origin.distanceTo(p) / 5));
     }
   }
 

@@ -79,8 +79,8 @@ jsDelivr, not from this repository. The first load fetches about 6 MB (2 MB terr
 3. Press the Meta button, open **Browser** (Meta Quest Browser).
 4. Point at the address bar, press the trigger, type the address from Part 1, step 5. Press Enter.
 5. The page shows the terrain as a flat window with a button at the bottom, **ENTER VR**. If it
-   says "VR NOT SUPPORTED", you are not in Meta Quest Browser or the address does not start with
-   `https://`.
+   says "WEBXR NOT AVAILABLE", you are not in Meta Quest Browser; if it says "WEBXR NEEDS HTTPS",
+   the address does not start with `https://`.
 6. Point at **ENTER VR** and press the trigger. If the browser asks to allow immersive mode, allow
    it.
 7. To leave VR, press the Meta button on the right controller and choose to quit or resume.
@@ -110,7 +110,7 @@ including the frame-time numbers.
 - How to check: press **ENTER VR**. Look all the way around, and up and down.
 - Pass: the browser window disappears and Mars is all around you, in 3D, following your head with
   no delay. Two thin white sticks show where your controllers are.
-- Failure looks like: the button says "VR NOT SUPPORTED"; nothing happens when pressed; a black or
+- Failure looks like: the button says "WEBXR NOT AVAILABLE", "WEBXR NEEDS HTTPS" or "VR NOT SUPPORTED"; nothing happens when pressed; a black or
   frozen view; the picture stays a flat window; the world moves with your head instead of staying
   still.
 
