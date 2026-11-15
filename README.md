@@ -16,8 +16,8 @@ python3 -m http.server 8000
 Open <http://localhost:8000>. Pick the terrain patch with the `site` URL
 parameter, which names a folder under `data/walk/`:
 
-- <http://localhost:8000/?site=jezero> (default)
-- <http://localhost:8000/?site=jezero_delta>
+- <http://localhost:8000/> or <http://localhost:8000/?site=jezero_delta> (default: the Jezero delta)
+- <http://localhost:8000/?site=jezero> (the Perseverance landing site)
 - <http://localhost:8000/?site=gale> (terrain only: no photo has been stitched for it)
 
 The photo on the ground is one pre-stitched image per patch, `data/walk/<site>/mosaic_16.jpg`.
@@ -29,8 +29,12 @@ python3 tools/stitch_mosaic.py jezero jezero_delta
 
 Controls: click the page to capture the mouse and look around, `W` `A` `S` `D`
 to walk, hold `Shift` to run, arrow keys also turn and walk, `Esc` releases the
-mouse. The red pole with the "N" sign is a temporary marker standing 60 m due
-north of the start point.
+mouse, `F` shows the frame time. Add `debug=1` to the address (for example
+`?debug=1` or `?site=jezero&debug=1`) to show a red pole with an "N" sign 60 m
+due north of the start point; it is hidden otherwise.
+
+Publishing and headset checks: `PUBLISH.md`. Data and software credits: `CREDITS.md`.
+Screenshots of the delta and where they were taken: `docs/screenshots/`.
 
 ## Code layout
 
@@ -43,7 +47,9 @@ north of the start point.
 - `tools/stitch_mosaic.py` - stitches the photo tiles of a patch into `mosaic_16.jpg`
 - `src/sky.js` - sky gradient, dust haze, lights
 - `src/controls.js` - player rig, keyboard + mouse walking
-- `src/northMarker.js` - temporary north marker
+- `src/northMarker.js` - north marker for checking orientation (only with `?debug=1`)
+- `src/xr.js` - VR: teleport, snap turn
+- `src/frameMeter.js` - frame-time readout drawn in the scene
 
 Local frame: x = east, z = south, y = up, in metres, origin at the patch centre
 (y = 0 is the ground height at the centre).

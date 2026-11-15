@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 
-// TEMPORARY orientation check: a tall red pole with an "N" sign, standing
-// `distanceM` due north (-z) of the given point. Remove once orientation is
-// trusted.
+// Orientation check: a tall red pole with an "N" sign, standing `distanceM`
+// due north (-z) of the given point. Only added to the scene with ?debug=1.
 export function createNorthMarker(patch, fromX, fromZ, { distanceM = 60, heightM = 30 } = {}) {
   const group = new THREE.Group();
   group.name = 'north-marker';

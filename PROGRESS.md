@@ -224,3 +224,66 @@ Not verified:
   warnings ("GPU stall due to ReadPixels"). They look like test-browser noise; there were no errors.
 - The test script, the emulator install and the screenshots are in a scratch folder, not the
   repository. The shipped page does not reference the emulator.
+
+## Step 6
+
+Made the delta the default site, took the four screenshots, and prepared the folder for GitHub
+Pages. Nothing was pushed. The real headset test is still open.
+
+What was done:
+
+- jezero_delta is now the default site; ?site=jezero still loads the old patch. The north marker
+  now only appears with ?debug=1.
+- Four screenshots (1600x900) are in docs/screenshots/, with positions and headings in its
+  README.md:
+  - Steepest spot: x -625, z 821, heading 241. A 10 m window there averages 51.8 degrees (steepest
+    single sample 61.1).
+  - Flattest spot: x 369, z 799, heading 0. A 30 m window there averages 0.73 degrees.
+  - Toward the crater rim: x -789, z -227, heading 273.
+  - Ground level: the start point 0, 0, heading 0.
+- Added .nojekyll, PUBLISH.md (publish steps, Quest 3S steps, the six-item headset checklist) and
+  CREDITS.md. README.md updated for the new default and the debug flag.
+
+Measured:
+
+- Subpath check: a copy of exactly the files git would publish was served at /TeamMarsRed/ and
+  loaded four ways in headless Chromium (default, ?site=jezero, ?site=jezero_delta, ?debug=1).
+  Each load made 19 requests (17 local, 2 to jsDelivr), all answered 200, no console errors.
+- Triangles: 209,160 (jezero_delta) and 210,634 (jezero).
+- Published size: 94.4 MB in 2,938 files, largest file 5.5 MB, no symlinks.
+
+Known problems, NOT fixed in this commit:
+
+- The crater rim crest is not in the data. The coarse grid ends about 3.4 km west of the patch
+  centre and is still climbing there. The "toward the rim" picture points at the nearest ground at
+  least 100 m above the patch centre (3.24 km away, bearing 273), which is the inner wall of the
+  western rim. The 100 m threshold was our choice. The picture shows a faint ridge on the horizon.
+- The steepest-spot picture looks along the scarp, not at it. A view from below made it too small.
+- Ground within about 20 m of the camera looks blurred, because the photo is about 0.6 m per pixel
+  (the 4096-pixel limit). It may read as "not sharp" on the headset.
+- PUBLISH.md gives the wrong button text in two places. It says "VR NOT SUPPORTED" for an address
+  without https; Three.js 0.170.0 actually shows "WEBXR NEEDS HTTPS" there, and "WEBXR NOT
+  AVAILABLE" when the browser has no WebXR.
+- The "frame time under 14 ms" check has almost no margin. The readout measures the gap between
+  frames, which a 72 Hz headset holds at 13.9 ms at best, so one or two dropped frames in the
+  average can read 14.0 ms or more on a healthy run. Judge by the "worst" figure and by readings
+  near 27.8 ms rather than by the average alone.
+- PUBLISH.md assumes the repository https://github.com/ShashwathD/TeamMarsRed. An anonymous
+  request to it returned 404, so it is private or absent. Pages on a free account needs a public
+  repository; PUBLISH.md says so in prose and gives a fallback, but has no numbered step for it.
+- CREDITS.md credits an "open source Team Protikriti project". Nothing else in the repository
+  mentions that name and there is no licence file, so the claim is unverified. CREDITS.md asks the
+  team to add the licence and link. Its statement that ?site=gale loads was not tested.
+- The published site carries about 80 MB the viewer never requests (2,825 photo tile files, plus
+  pipeline/ and web/). Within GitHub limits; left in place.
+- Carried over from step 5: wide-angle view after leaving VR, small teleport ring, possible
+  one-frame hitch after a long teleport.
+
+Not verified:
+
+- Nothing ran on a real Quest 3S or on real GitHub Pages. The subpath test used a local static
+  server and headless Chromium with software graphics. VR was not re-tested in this step, not even
+  in the emulator.
+- The subpath test copy was made before the screenshots, docs/screenshots/README.md and the final
+  PUBLISH.md wording existed. The page does not load those files.
+- Whether the user can push to the assumed repository or turn Pages on there.
