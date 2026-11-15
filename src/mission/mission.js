@@ -1,5 +1,7 @@
 import * as THREE from 'three';
-import { createRouteGrid, paceFromAssumptions, planRoute, routeSummary } from './route.js';
+import { createRouteGrid, paceFromAssumptions, planRoute, routeSummary, sampleGrid } from './route.js';
+import { createClock } from './clock.js';
+import { createHud } from './hud.js';
 import { buildRibbonGeometry, createRibbon } from './ribbon.js';
 import { createBeacons } from './beacons.js';
 import { PALETTE } from './lowpoly.js';
@@ -25,6 +27,9 @@ const ROUTE_LANE_SHIFT_M = 0.65;
 const ROUTE_LANE_RAMP_POINTS = 3; // the shift fades in and out over this many route points
 const ROUTE_STACK_M = 0.03; // later parts of the route sit this much higher where it crosses itself
 const SPAWN_FROM_MARKER_M = 6; // the player starts this far along the route from the airlock marker
+const SLOPE_CLEAR_DEG = 1; // a slope caution is over once the ground is this much under its threshold
+const SLOPE_FLASH_GAP_S = 5; // at least this long between two amber slope flashes
+const LEVELS = ['ok', 'amber', 'red'];
 
 // Replaces {name} in a card text with values[name]; unknown names are left as they are.
 export function fillPlaceholders(text, values) {
@@ -57,7 +62,7 @@ function laneShifts(points, shiftM) {
   return shifts;
 }
 
-export async function createMission({ site, patch, scene, renderer }) {
+export async function createMission({ site, patch, scene, renderer, camera }) {
   const url = `./data/mission/${site}.json`;
   const response = await fetch(url);
   if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
@@ -153,6 +158,24 @@ export async function createMission({ site, patch, scene, renderer }) {
 
   const layers = { route, traverse, beacons: beacons.group };
 
+  // ---- EVA clock and HUD (brief: SYSTEMS) --------------------------------
+  const clock = createClock({ rg: routeGrid, pace, assumptions: data.assumptions, routePoints, airlock: data.start });
+  // The HUD needs a camera to follow; without one (no viewer) the clock still runs.
+  const hud = camera ? createHud({ scene, camera, anisotropy: renderer ? Math.min(4, renderer.capabilities.getMaxAnisotropy()) : 1 }) : null;
+  clock.onStatus = (status, previous) => {
+    // "RETURN" when the margin gets worse (ok -> amber -> red), not when it recovers.
+    if (hud && LEVELS.indexOf(status) > LEVELS.indexOf(previous)) hud.flash('RETURN', { level: status });
+  };
+  const bands = data.terrain.slopeBandsDeg; // amber from 10, red above 15 (from the mission file)
+  // Real values the HUD shows, unrounded, for later steps and tests.
+  const telemetry = { headingDeg: 0, slopeDeg: 0, slopeLevel: 'ok', nextId: null, nextDistanceM: NaN };
+  const walkOrder = data.route.order.filter((id) => id !== 'START');
+  const progress = { nextId: walkOrder[0] || null };
+  const slopeWarnings = { amber: 0, red: 0 };
+  let cautionLevel = 0; // 0 ok, 1 amber, 2 red; falls back only once clearly off the steep ground
+  let sinceSlopeFlashS = Infinity;
+  let lastTimeS = null;
+
   const mission = {
     site,
     data,
@@ -167,6 +190,18 @@ export async function createMission({ site, patch, scene, renderer }) {
     beacons: beacons.beacons,
     route: { mesh: route, points: data.route.points, lengthM: summary.lengthM },
     traverse: { mesh: traverse },
+    clock,
+    hud,
+    telemetry,
+    progress,
+    slopeWarnings,
+
+    // Which station the HUD's "NEXT" points at: a station id, 'START' (the
+    // airlock) or null for none. Later steps call this as stations are done.
+    setNextStation(id) {
+      progress.nextId = id === 'START' || stations.has(id) ? id : null;
+      return progress.nextId;
+    },
 
     // Card text with its {placeholders} filled in. S5B has two columns.
     cardText(id) {
@@ -205,10 +240,66 @@ export async function createMission({ site, patch, scene, renderer }) {
       return { triangles, drawCalls };
     },
 
-    // Once per frame. viewer = world position of the head.
-    update(timeS, viewer) {
+    // Once per frame. viewer = world position of the head; dt = seconds since
+    // the last frame (worked out from timeS if left out). No allocations.
+    update(timeS, viewer, dt) {
       route.material.uniforms.uTime.value = timeS % 3600;
       beacons.update(viewer);
+
+      if (dt === undefined) dt = lastTimeS === null ? 0 : Math.min(Math.max(timeS - lastTimeS, 0), 0.1);
+      lastTimeS = timeS;
+
+      // Mission time: the walking time of the ground covered since last frame.
+      clock.track(viewer.x, viewer.z);
+
+      // Slope underfoot (bilinear sample of the terrain slope) and its caution.
+      const slope = sampleGrid(routeGrid, routeGrid.slopeDeg, viewer.x, viewer.z);
+      const slopeDeg = Number.isFinite(slope) ? slope : 0;
+      const band = slopeDeg > bands.redAbove ? 2 : slopeDeg >= bands.amberFrom ? 1 : 0;
+      sinceSlopeFlashS += dt;
+      if (band > cautionLevel) {
+        const wasLevel = cautionLevel;
+        cautionLevel = band;
+        if (band === 2) slopeWarnings.red++;
+        else slopeWarnings.amber++;
+        // Red always shows; amber not more often than every few seconds.
+        if (hud && (band === 2 || wasLevel === 0) && (band === 2 || sinceSlopeFlashS >= SLOPE_FLASH_GAP_S)) {
+          hud.flash('SLOPE', { level: LEVELS[band] });
+          sinceSlopeFlashS = 0;
+        }
+      } else if (band < cautionLevel) {
+        const threshold = cautionLevel === 2 ? bands.redAbove : bands.amberFrom;
+        if (slopeDeg < threshold - SLOPE_CLEAR_DEG) cautionLevel = band;
+      }
+      telemetry.slopeDeg = slopeDeg;
+      telemetry.slopeLevel = LEVELS[band];
+
+      // Straight-line distance to the next station.
+      const nextId = progress.nextId;
+      const target = nextId === 'START' ? data.start : nextId ? stations.get(nextId) : null;
+      telemetry.nextId = nextId;
+      telemetry.nextDistanceM = target ? Math.hypot(target.x - viewer.x, target.z - viewer.z) : NaN;
+
+      if (!hud) return;
+      telemetry.headingDeg = (hud.follow.headYawDeg + 360) % 360;
+      const v = hud.values;
+      v.leftMin = Math.floor(clock.timeLeftS / 60);
+      v.homeMin = Math.ceil(clock.homeS / 60 - 1e-9); // never shown shorter than it is
+      v.marginMin = Math.floor(clock.marginS / 60);
+      v.status = clock.status;
+      v.headingDeg = (Math.round(telemetry.headingDeg / 5) * 5) % 360;
+      v.slopeDeg = Math.round(slopeDeg);
+      v.slopeLevel = telemetry.slopeLevel;
+      v.nextId = nextId || '';
+      const d = telemetry.nextDistanceM;
+      v.nextM = target ? (d < 100 ? Math.round(d) : Math.round(d / 10) * 10) : 0;
+      // Cosmetic suit values (tagged SIM on the HUD): not data, not measured.
+      // They only drift with the share of the EVA used so the panel is not static.
+      const used = Math.min(Math.max(clock.elapsedS / clock.totalS, 0), 1);
+      v.o2 = Math.round(100 - 85 * used);
+      v.battery = Math.round(100 - 75 * used);
+      v.tempC = Math.round(20 + 4 * used);
+      hud.update(dt, viewer);
     },
   };
   return mission;

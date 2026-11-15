@@ -460,3 +460,81 @@ Known problems:
 - Three checks in the old B1 test scripts (outside the repo) expect the B1 placeholders and now
   fail by design.
 - Still open from B1: which way the panoramas face (B7), and 3.3 km/h against NASA's about 2 km/h.
+
+## Mission B3: EVA clock and suit HUD (2026-11-15)
+
+What was done:
+
+- An EVA clock: 8 hours in total, 1 hour reserve, 20 minutes per station (all read from the
+  mission file, all ASSUMPTIONS). Mission time does not follow real seconds. It is charged the
+  walking time of the ground covered, at the brief's pace rule (Tobler x 0.8, capped at 3.3 km/h),
+  whether that ground was walked, run or teleported. Standing still and turning cost nothing.
+- Time to walk home: along the planned route (the quicker way round the loop) when within 30 m
+  of it, otherwise the fastest slope-limited walk to the airlock.
+- Margin = time left - reserve - walk home. Amber under 1 hour, red under zero, with a "RETURN"
+  flash. Nothing stops: below zero the clock keeps counting and the walk goes on.
+- A HUD strip floating 1.15 m in front of the head and 24 degrees below eye level. It is an object
+  in the world: it stays put for small head turns and glides back in front after bigger ones.
+  Real values: EVA left, walk home, margin, heading, slope underfoot, distance to the next
+  station. Oxygen, battery and temperature are made up and labelled SIM.
+- Short flashes near the top of the view (the only head-fixed thing, about 2.5 seconds): "SLOPE
+  CAUTION" (amber from 10 degrees, red above 15), "SCAN", "SAMPLE SEALED", "RETURN".
+- For later steps: `mission.clock` and `mission.hud.flash(kind)` (see README.md and DECISIONS.md).
+
+Measured (headless Chromium, software rendering):
+
+- At the start: 8:00 left, 0:01 to walk home, margin 6:59.
+- Jumps of 79, 135, 305 and 894 m were charged 112, 189, 342 and 1000 seconds. A 20.8 m teleport
+  in emulated VR was charged 22.7 seconds.
+- Walk home from Berea 12.4 minutes; from the ridge lookout 24.1 minutes.
+- The HUD adds 130 triangles, 2 draw calls (3 during a flash) and two canvas textures (2400 x 252
+  and 1024 x 208). The strip is redrawn only when a shown value changes, at most 5 times a second.
+- Whole scene, counting everything: 241,930 triangles, 272 draw calls. Emulated VR, in view and
+  summed over both eyes: 305,000 to 314,000 triangles depending on the view.
+
+Review (a second, independent pass):
+
+- An independent script (own code, reading the raw terrain file) recomputed and confirmed: the
+  cost of each jump, the VR teleport and a keyboard walk; walk-home time at the start, Berea and
+  the ridge; walk-home time at three places 350 to 620 m off the route, using its own
+  shortest-path search; the slope shown on amber and red ground; the amber and red thresholds to
+  within a minute; the 20 minute stop charged once. 32 desktop checks and 18 emulated-VR checks
+  pass.
+- Fixed: while walking or running on desktop at a normal frame rate the strip fell behind the
+  head (0.25 m too close when walking; behind the head when running). The slow test renderer had
+  hidden this. The strip is now never more than 0.1 m behind.
+- Fixed: a flash asked for while the HUD is hidden (the cabin, later) still appeared.
+- Checked in emulated VR: entering and leaving VR, head turns, snap turns and 15 cm of head sway
+  cost no mission time; the strip is a world object and does not move for a 25 degree head turn;
+  looking 24 degrees down puts it mid-view.
+- The builder's tests (34 desktop, 17 VR) and all earlier tests (step 5: 55 of 55, B2 and its
+  review) pass. 9 screenshots looked at: text fits, colours right, nothing buried or overlapping.
+
+Not verified:
+
+- Nothing ran on a real Quest 3S. Whether the strip is readable in the headset (digits about
+  4 cm tall at 1.15 m, labels about 1.5 cm), whether the trailing feels comfortable, the
+  head-fixed flash, and the frame rate are all untested there.
+- The strip following at 72 frames per second was checked by stepping the HUD code by hand, not
+  by rendering at that rate.
+
+Known problems:
+
+- Amber and red are never reached on the planned walk (it uses about 2 h 24 min of 8 h). They
+  were tested by charging the clock directly.
+- The clock ignores real time by design. If the team wants a ticking clock, that is a rule change.
+- An ordinary teleport is priced along the straight line, steep ground included (slow, not
+  forbidden). The tablet teleport in B4 must charge the route time itself (recipe in DECISIONS.md).
+- Off the route, the walk-home search took 43 ms on a desktop; on a Quest it may cause a
+  one-frame hitch. It runs again only after moving 10 m or more.
+- About 29% of the patch is 10 degrees or steeper, so roaming off the route shows the amber
+  slope flash often (at most every 5 seconds). Not tuned on a headset.
+- The strip does not follow looking up or down; on desktop it leaves the screen when looking up.
+  Close objects can cover it; the flash draws over everything.
+- "NEXT" is the straight-line distance and stays on S2 until a later step moves it on.
+- `__mars.setPose` now costs mission time like a teleport; tests that do not want this should
+  call `mission.clock.reset()` or `mission.clock.moveCharged(x, z)`.
+- In VR the triangles drawn over both eyes are still slightly above the 300,000 guide (from B2;
+  the HUD adds about 250).
+- Still open from earlier steps: which way the panoramas face (B7), 3.3 km/h against NASA's about
+  2 km/h, `{extra_min}` 0.2, `{station_count}` 4.

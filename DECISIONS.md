@@ -236,3 +236,65 @@ cap is faster than that. It stays as the brief's ASSUMPTION and is labelled so; 
   the 14.55 degrees is that slope interpolated along the route. Measured another way (the tilt of
   the interpolated height surface between samples, 5 cm steps) the steepest spot under the route
   is 15.1 degrees. Both come from the same data; the first is the rule the route follows.
+
+## Mission B3: EVA clock and HUD (2026-11-15)
+
+- **Mission time is a budget, not a stopwatch.** Real seconds are not counted. The clock moves
+  only when (1) ground is covered and (2) another part of the mission charges it (20 minutes per
+  station with `clock.chargeStop(id)`, once per station; a map teleport with `clock.charge`).
+  Reason: a visit lasts minutes and the EVA 8 hours, so a real-time clock would never move, and a
+  sped-up one would punish reading the cards. Standing still costs nothing.
+- **Ground covered costs its walking time, however it was covered.** Each frame the explorer's
+  ground position (under the head) is compared with the last charged spot. Once it is 0.25 m or
+  more away (so head sway is not charged), the straight line between the two is priced with the
+  route's own pace rule: km/h = min(3.3, 0.8 x 6 x exp(-3.5 x |tan(slope along the line) + 0.05|)),
+  heights read from the terrain at most every 2 m. So a desktop walk (3 m/s on screen), a run
+  (15 m/s), real steps in the room and a teleport of N metres all cost the same: the walking time
+  of those N metres. A 30.7 m teleport cost 33.4 s in the test; a 114 m jump 131 s. A teleport is
+  never free. Snap turns cost nothing (no ground covered).
+- **The straight line of a teleport ignores the 15 degree limit**: it is priced over whatever
+  ground lies between, steep or not (Tobler makes steep ground slow, it does not forbid it). The
+  B4 map teleport must instead charge the route distance: `clock.charge(clock.routeSeconds(first,
+  last), { metres, reason: 'teleport' })` then `clock.moveCharged(x, z)`, so the jump is not
+  charged a second time.
+- **Time to walk home.** Within 30 m of the planned route: walking time along the route from the
+  nearest route point to the airlock, the quicker way round the loop (forward and backward times
+  differ, because uphill and downhill are priced differently), plus the straight walk to that
+  route point. Farther from the route: the fastest slope-limited walk found by A* from the nearest
+  ground that can be walked home from (looked for within 60 m), plus the straight walk to it. The
+  search (43 ms in headless desktop Chromium, 174 m off the route) runs again only after moving
+  10 m or 5% of the distance to the airlock, whichever is more, never every frame. Its cost on a
+  Quest is not measured.
+- **Margin = time left - reserve (1 h) - time to walk home.** Amber when margin is under 1 hour,
+  red when it is under 0, which is the brief's "walk-home time exceeds time left minus reserve".
+  (If the reserve were not subtracted, the brief's amber and red rules would be the same line.)
+  At the start: 8:00 left, margin 6:59. The planned walk uses about 2 h 24 min, so amber is not
+  reached on the planned route; that is what the numbers give.
+- **Never game over**: below zero the clock keeps counting (shown with a minus sign), "RETURN"
+  flashes once when the status gets worse, and everything keeps working.
+- **HUD strip**: one panel 1.24 m x 0.13 m, 1.15 m from the head and 24 degrees below eye level,
+  turned to face the eyes. It is an object in the scene, not a child of the camera. It stays put
+  for head turns up to 28 degrees, then glides back in front (rate 4 per second) and stops within
+  1.5 degrees; it is never left more than 55 degrees behind. It follows the head's position
+  softly but is never more than 0.1 m behind it (so it keeps its place when walking, running or
+  teleporting). It does not follow looking up or down. Large digits are about
+  4 cm tall at 1.15 m (about 2 degrees); labels about 1.5 cm. Legibility in a headset is not
+  tested.
+- **Flashes** ("SLOPE CAUTION", "SCAN", "SAMPLE SEALED", "RETURN") are the one thing fixed to the
+  head: a small panel 17 degrees above the view centre for about 2.5 seconds, then gone.
+- **Slope caution**: slope underfoot is the bilinear sample of the terrain slope grid (the B1
+  method). Amber from 10 degrees, red above 15 (bands read from the mission file). A flash is
+  shown on entering a band, not while standing in it; the caution ends once the ground is 1 degree
+  under the band; amber flashes at most every 5 seconds. `mission.slopeWarnings` counts them for
+  the debrief.
+- **Redraws**: the strip's canvas is drawn only when a shown value changes and at most 5 times a
+  second. To keep that rare, heading is shown in 5 degree steps, times in whole minutes (time left
+  and margin rounded down, walk home rounded up), slope in whole degrees, distance in metres up to
+  100 m and in 10 m steps beyond.
+- **"NEXT" is the straight-line distance** to the next station, not the distance along the route.
+  The next station is S2 until a later step calls `mission.setNextStation(id)`.
+- **SIM values are made up**: oxygen = 100 - 85 x share of the EVA used, battery = 100 - 75 x
+  share, temperature = 20 + 4 x share (degrees C). They are not data, are labelled SIM on the
+  strip, and nothing depends on them.
+- **Cost**: 130 triangles, 2 draw calls (3 while a flash shows), two canvas textures (2400 x 252
+  and 1024 x 208).

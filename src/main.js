@@ -126,7 +126,7 @@ async function start() {
   let missionNote = '';
   if (MISSION_SITES.includes(site) && params.get('mission') !== '0') {
     try {
-      mission = await createMission({ site, patch, scene, renderer });
+      mission = await createMission({ site, patch, scene, renderer, camera });
       player.setPosition(mission.spawn.x, mission.spawn.z);
       player.setHeading(mission.spawn.headingDeg);
     } catch (error) {
@@ -173,7 +173,7 @@ async function start() {
     // (in VR the head can be away from the rig origin).
     player.headPosition(viewer);
     terrain.update(viewer.x, viewer.z);
-    if (mission) mission.update(clock.elapsedTime, viewer);
+    if (mission) mission.update(clock.elapsedTime, viewer, dt);
     renderer.render(scene, camera);
     frames++;
   });

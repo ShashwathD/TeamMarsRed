@@ -55,6 +55,8 @@ Screenshots of the delta and where they were taken: `docs/screenshots/`.
 - `src/mission/ribbon.js` - ribbons draped on the terrain (planned route with moving chevrons, rover traverse)
 - `src/mission/beacons.js` - station beacons with labels that face the viewer
 - `src/mission/lowpoly.js` - shared low-poly palette, material and geometry merge
+- `src/mission/clock.js` - EVA clock: mission time charged for ground covered and station stops, time to walk home, margin
+- `src/mission/hud.js` - suit HUD: a strip in the scene that trails behind head turns, and short flashes
 - `tools/build_mission.py` - builds `data/mission/<site>.json`; plans the route through `tools/route_cli.mjs` (needs Node.js)
 
 On the delta patch the mission layer is loaded: a blue route ribbon, the rover's real path in
@@ -66,6 +68,15 @@ Local frame: x = east, z = south, y = up, in metres, origin at the patch centre
 
 `window.__mars` (debug handle): `player` (x, y, z, headingDeg, elevationM),
 `setPose({ x, z, headingDeg, pitchDeg })`, `triangles`, `measureTriangles()`, `groundY(x, z)`.
+With the mission loaded a HUD strip floats in front of and below the view (desktop and VR): EVA
+time left, time to walk home, margin, heading, slope underfoot and distance to the next station
+are real; suit oxygen, battery and temperature are cosmetic and tagged SIM. The clock does not
+count real seconds: it is charged the walking time of the ground covered (walking, running and
+teleporting cost the same per metre) and 20 minutes per station. See DECISIONS.md, "Mission B3".
+For later steps: `mission.clock` (`charge`, `chargeStop`, `moveCharged`, `routeSeconds`,
+`homeFrom`, `running`, `status`), `mission.hud.flash('SLOPE' | 'SCAN' | 'SAMPLE' | 'RETURN',
+{ level })`, `mission.hud.setVisible`, `mission.setNextStation(id)`, `mission.telemetry`.
+
 `window.__mars.mission` (null without a mission): `data`, `values` (card placeholders), `summary`
 (route length, times, slopes), `cardText(id)`, `setLayer('route' | 'traverse' | 'beacons', on)`,
 `beacons`, `spawn`, `planAgain()`, `stats()`.
