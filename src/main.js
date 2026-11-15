@@ -9,7 +9,7 @@ import { createNorthMarker } from './northMarker.js';
 import { createFrameMeter } from './frameMeter.js';
 import { createXR } from './xr.js';
 
-const DEFAULT_SITE = 'jezero';
+const DEFAULT_SITE = 'jezero_delta';
 
 // Which coarse regional grid (data/sites/<name>) surrounds a walk patch, when
 // the folder names differ.
@@ -114,10 +114,12 @@ async function start() {
     ? patch.lonLatToLocal(patch.meta.start.lon, patch.meta.start.lat)
     : { x: 0, z: 0 };
   player.setPosition(startLocal.x, startLocal.z);
-  player.setHeading(0); // face north, toward the marker
+  player.setHeading(0); // face north
 
-  const northMarker = createNorthMarker(patch, player.position.x, player.position.z);
-  scene.add(northMarker);
+  // Orientation check (red pole 60 m due north of the start): only with ?debug=1.
+  const debug = new URLSearchParams(window.location.search).get('debug') === '1';
+  const northMarker = debug ? createNorthMarker(patch, player.position.x, player.position.z) : null;
+  if (northMarker) scene.add(northMarker);
 
   // Frame-time readout, drawn in the scene so it also shows in VR.
   // F on desktop, A/B/X/Y on a controller; ?frametime=1 starts with it on.
