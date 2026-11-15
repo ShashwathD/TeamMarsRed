@@ -1,0 +1,19 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  color: white;
+  background: #050816;
+  font: 16px system-ui, sans-serif;
+}
+
+main {
+  position: fixed;
+  z-index: 1;
+  top: 1rem;
+  left: 1.25rem;
+  pointer-events: none;
+}
+
+h1 { margin: 0; font-size: 1.25rem; }
+p { margin-top: 0.35rem; color: #cbd5e1; }
+canvas { display: block; }
