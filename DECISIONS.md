@@ -124,10 +124,8 @@ from the files in this repo on 2026-11-15.
   walking order. The first one that crosses ground above 15 degrees is start to Berea (highest slope
   19.5 degrees, first steep sample 73 m from the start), so `{direct_max_slope}` = 19.5. The other
   two lines are steeper (Berea to ridge 29.4, ridge to start 32.3 degrees).
-- **S2 and S3 positions are provisional.** They depend on the planned route, which step B2 computes.
-  For now S2 stands on the start-to-Berea line 10 m before the first steep sample, and S3 is the
-  point of the rover traverse nearest to that. Both are marked `"provisional": true`.
-  `{route_km}`, `{extra_min}` and `{station_count}` are present but `null` until B2.
+- **S2 and S3 positions** were provisional in B1 and are set by the planned route since B2 (see
+  "Mission B2" below). `{route_km}`, `{extra_min}` and `{station_count}` are filled since B2.
 - **Igneous cores**: entries of `data/activities.json` whose rock type is exactly "Igneous": 8 cores,
   sols 194 to 377, all within 0.9 km of the first rover waypoint. This matches the brief's fallback
   list. Entries typed "Igneous/impactite" (28, 29), "Igneous or sedimentary" (30) and "Likely mixed
@@ -178,3 +176,63 @@ cap is faster than that. It stays as the brief's ASSUMPTION and is labelled so; 
 - `data/activities.json` has 30 entries (not 25). Samples 29 and 30 have no sol or position yet.
 - `data/pano/m20/26_1222.json` does not exist; that panorama's frame list is inside
   `data/pano/m20/index.json` instead. Both panorama images are present.
+
+## Mission B2: planned route, beacons, rover traverse (2026-11-15)
+
+- **One implementation of the route maths**: `src/mission/route.js` (plain JavaScript, no Three.js).
+  The page uses it, and `tools/build_mission.py` runs the same file through `tools/route_cli.mjs`
+  (Node.js) to store the route in `data/mission/jezero_delta.json`. So the tool now needs Node.js
+  on the PATH. The page does not search at load: it reads the stored line and computes the numbers
+  it shows from that line and the terrain. Planning again in the page gives the same 1416 points
+  (checked in the headless test; about 70 ms on a desktop).
+- **Rules**: 2 m grid, 8 neighbours. A cell is walkable when its slope (central differences, the
+  B1 method) is at most 15 degrees. A diagonal step also needs both cells it passes between to be
+  walkable; with that, the bilinear terrain slope anywhere under the route cannot exceed 15.
+  Cost = walking time: km/h = min(3.3, 0.8 x 6 x exp(-3.5 x |tan(slope along the path) + 0.05|)).
+  Lengths are horizontal map distances, not distances along the slope. Search is A* with the
+  straight grid distance at 3.3 km/h as the lower bound, so the result is the fastest grid path
+  (confirmed against a separate Dijkstra in Python). No smoothing: the route follows grid moves,
+  so it is up to about 8% longer than a free-angle path would be.
+- **Result**: START, S4, S5, START = 3429 m, 64.3 minutes walking; with 4 stops of 20 minutes,
+  144.3 minutes of the 480. Steepest ground under the route 14.55 degrees (bilinear slope sampled
+  every 0.5 m). Route ends are the nearest reachable terrain sample: 0.87 m from the Berea
+  position and 1.04 m from the ridge position; neither station is on or cut off by steep ground.
+  If a station could not be reached the tool stops with "NO ROUTE"; it never relaxes the limit.
+- **S2** is the route point nearest to the first place where the straight line start-to-Berea gets
+  steeper than 15 degrees (it is 26 m from that place and 62 m along the route from the start).
+- **S3** is the first place after S2 where the route comes within 2 m (one grid spacing) of the
+  rover traverse: 409 m after S2, 202 m before Berea, on the sol-732 drive. The route crosses the
+  rover's path there, so the distance is 0.
+- **`{extra_min}` is 0.2.** Straight line start-to-Berea: 620 m, 12.34 minutes with the same pace
+  rule (it ignores the slope limit and reaches 19.5 degrees). Planned: 673 m, 12.58 minutes. The
+  difference is 14 seconds, so the S2 card reads "takes 0.2 more minutes". Values under 10 minutes
+  are shown with one decimal so a small difference is not printed as 0. The team may want to
+  reword the card or compare distance instead; the number itself is what the data gives.
+- **`{station_count}` is 4**: the stations walked to (S2 to S5). S1, the briefing, is in the cabin
+  at the start. Each of the 4 costs 20 minutes on the clock.
+- **Drawing**: the route is one ribbon mesh 1.2 m wide (7,106 triangles), laid on the heights of
+  the full-detail terrain triangles and lifted in the vertex shader by 8 cm plus 4 mm per metre
+  from the eye; the lift covers the coarser far terrain and depth precision. Chevrons are drawn in
+  the fragment shader and move at 1.5 m/s in the walking direction. Fog is off for it. The rover
+  traverse is a second ribbon, 0.5 m wide, orange, slightly higher (8,246 triangles), with its own
+  on/off switch. Five beacons (4 stations + the airlock at the start) are one merged flat-shaded
+  mesh each plus a canvas-text label that turns to the viewer about the vertical axis only and
+  grows with distance between 12 m and 260 m (0.085 x distance tall) so it reads the same from
+  200 m as from 20 m. Total added: 15,816 triangles, 12 draw calls.
+- **Start**: with the mission loaded the walk starts on the route 6 m past the start marker, at
+  (221, -95), facing along the route, instead of the patch centre. (Starting exactly on the marker
+  put the viewer inside its pillar; found in review.) `?mission=0` gives the plain viewer.
+- **Where the route doubles back** (about 66 m in two stretches near the ridge lookout, where the
+  walk to the ridge and the walk back use the same terrain samples) the two directions were drawn
+  on top of each other, so the chevrons a walker saw pointed the wrong way. Each direction is now
+  drawn 0.65 m to its own right there (keep right, like a road), fading in over 3 route points.
+  The stored route is unchanged; only the drawing is shifted. The ribbon also rises evenly by
+  3 cm from its first to its last point, so where the route crosses itself the later part lies
+  cleanly on top.
+- **Labels in line**: every second beacon's label is raised by 1.15 label heights when seen from
+  more than 60 m (full raise from 160 m), so a station standing behind another keeps a readable
+  label. Up close every label sits on its pillar.
+- **Which slope is "crossed"**: the limit is applied to the slope of each 2 m terrain sample, and
+  the 14.55 degrees is that slope interpolated along the route. Measured another way (the tilt of
+  the interpolated height surface between samples, 5 cm steps) the steepest spot under the route
+  is 15.1 degrees. Both come from the same data; the first is the rule the route follows.

@@ -8,6 +8,7 @@ import { createPlayer, EYE_HEIGHT_M } from './controls.js';
 import { createNorthMarker } from './northMarker.js';
 import { createFrameMeter } from './frameMeter.js';
 import { createXR } from './xr.js';
+import { MISSION_SITES, createMission } from './mission/mission.js';
 
 const DEFAULT_SITE = 'jezero_delta';
 const DESKTOP_FOV = 70; // degrees, vertical
@@ -117,6 +118,23 @@ async function start() {
   player.setPosition(startLocal.x, startLocal.z);
   player.setHeading(0); // face north
 
+  // The Marswalk mission (route, beacons, rover traverse) on patches that have
+  // one; ?mission=0 leaves it out. The walk then starts on the route a few
+  // metres from the mission's start marker (the airlock), facing along the route.
+  const params = new URLSearchParams(window.location.search);
+  let mission = null;
+  let missionNote = '';
+  if (MISSION_SITES.includes(site) && params.get('mission') !== '0') {
+    try {
+      mission = await createMission({ site, patch, scene, renderer });
+      player.setPosition(mission.spawn.x, mission.spawn.z);
+      player.setHeading(mission.spawn.headingDeg);
+    } catch (error) {
+      console.error(error);
+      missionNote = ` (mission not loaded: ${error.message})`;
+    }
+  }
+
   // Orientation check (red pole 60 m due north of the start): only with ?debug=1.
   const debug = new URLSearchParams(window.location.search).get('debug') === '1';
   const northMarker = debug ? createNorthMarker(patch, player.position.x, player.position.z) : null;
@@ -155,6 +173,7 @@ async function start() {
     // (in VR the head can be away from the rig origin).
     player.headPosition(viewer);
     terrain.update(viewer.x, viewer.z);
+    if (mission) mission.update(clock.elapsedTime, viewer);
     renderer.render(scene, camera);
     frames++;
   });
@@ -163,7 +182,8 @@ async function start() {
     `${site}: click to look around, WASD to walk, Shift to run, hold T (or right mouse) to aim a teleport and release to jump, Esc to release the mouse, F for frame time. ` +
       'In VR: hold trigger to aim, release to teleport; thumbstick left/right to turn' +
       (photo ? '' : ' (no photo for this patch)') +
-      surroundNote,
+      surroundNote +
+      missionNote,
   );
 
   const sceneTriangles = () => terrain.triangles + (surround ? surround.triangles : 0);
@@ -182,6 +202,7 @@ async function start() {
     northMarker,
     xr,
     frameMeter,
+    mission,
     playerRig: player,
     eyeHeightM: EYE_HEIGHT_M,
     get frames() {

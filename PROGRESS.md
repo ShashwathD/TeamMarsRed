@@ -372,3 +372,91 @@ Known problems:
 - The wrong answers of the Field Check and the written-out Tobler formula are our wording, not
   from the brief (listed in DECISIONS.md for the team to veto).
 - Which way the panorama images face (north column) is not recorded yet; B7 needs it.
+
+## Mission B2: route, ribbon, beacons, rover path (2026-11-15)
+
+What was done:
+
+- The walking route is planned on the 2 m terrain: it never steps on ground steeper than
+  15 degrees and is the fastest such path with the brief's pace rule. The same JavaScript file
+  (`src/mission/route.js`) plans it in the data tool and measures it in the page. The planned line
+  (1416 points) is stored in `data/mission/jezero_delta.json`, so the headset does not search at load.
+- In the viewer: a blue ribbon on the ground with chevrons moving in the walking direction, the
+  rover's real path as an orange line (can be switched off on its own), and five low-poly beacons
+  with name labels that turn to the viewer (Airlock, 2 Read the ground, 3 Follow the rover,
+  4 Berea: first core, 5 Ridge lookout).
+- All mission code is in the new folder `src/mission/`, loaded from one place in `main.js`.
+  `?mission=0` gives the plain viewer.
+
+Measured numbers:
+
+| Leg | Length (m) | Time (min) | Steepest ground (deg) |
+|---|---|---|---|
+| Start to S2 | 62.0 | 1.14 | 7.30 |
+| S2 to S3 | 409.0 | 7.76 | 14.10 |
+| S3 to S4 Berea | 202.1 | 3.68 | 7.15 |
+| S4 to S5 ridge | 1520.8 | 27.67 | 14.29 |
+| S5 back to start | 1235.0 | 24.09 | 14.55 |
+
+- Whole route: 3429 m (`{route_km}` 3.4), 64.3 minutes walking. With 4 stops of 20 minutes
+  (`{station_count}` 4) that is 144.3 of the 480 minutes.
+- Steepest ground under the route: 14.55 degrees (limit 15). No station was on or cut off by steep
+  ground; the route ends 0.87 m from the Berea position and 1.04 m from the ridge position (the
+  nearest terrain sample).
+- S2 comparison, start to Berea: the straight line is 620 m, 12.34 minutes and reaches
+  19.5 degrees (`{direct_max_slope}`); the planned route is 673 m and 12.58 minutes, so
+  `{extra_min}` is 0.2 (14 seconds).
+- S2 is on the route 62 m from the start, at the route point nearest to where the straight line
+  first gets too steep. S3 is where the route crosses the rover's path (sol-732 drive), 409 m on.
+- Cost added: 15,816 triangles and 12 draw calls. Whole scene at the start, counting everything:
+  241,808 triangles, 270 draw calls. In emulated VR, in view and summed over both eyes: 316,700
+  triangles and 278 draw calls (285,468 and 262 with the mission hidden).
+
+Review (a second, independent pass):
+
+- An independent script (own code, raw terrain file) confirmed: every route step is a legal move
+  on ground of 15 degrees or less; length, time and steepest slope per leg; the S2 and S3 rules;
+  `{route_km}`, `{extra_min}`, `{direct_max_slope}`, `{station_count}`; and, with its own
+  shortest-path search, that no faster route exists for any of the three legs. 28 checks pass.
+- Fixed: the player started exactly on the Airlock marker, inside its pillar. The walk now starts
+  on the route 6 m from it.
+- Fixed: near the ridge the way out and the way back use the same ground for about 66 m, and the
+  two ribbons lay on top of each other with chevrons pointing against the walker. Each direction
+  is now drawn to its own right, side by side.
+- Fixed: a label of a station standing behind another one was hidden; every second label now
+  sits higher when seen from far away.
+- Checked in headless Chromium, desktop: both ribbons are above the terrain that is actually
+  drawn at every sampled point from five viewpoints (also far away, where the terrain is drawn
+  coarser); beacon bases neither float nor sink; label text fits its panel; nothing is created
+  or redrawn per frame; a missing mission file leaves the plain viewer working with a note.
+  21 checks pass; 12 screenshots looked at.
+- Checked in emulated VR: two eyes, labels are objects in the world and follow a real head move,
+  chevrons move, no errors. 7 checks pass; 2 screenshots looked at.
+- The builder's tests (25 desktop, 4 VR) and the older step-5 test (55 of 55) pass. The data tool
+  gives the same file byte for byte when run again.
+
+Not verified:
+
+- Nothing ran on a real Quest 3S: frame rate, label legibility at 200 m in the headset, and
+  flicker between ribbon and ground are untested there. All checks used software rendering.
+- Label legibility at 200 m was judged from 1280 x 720 desktop screenshots only.
+- The ribbon-above-terrain check samples points while standing at five places, not every view.
+
+Known problems:
+
+- `{extra_min}` is 0.2, so the S2 card reads "takes 0.2 more minutes". That is what the data
+  gives; the team may want to reword the card or compare distance (54 m more).
+- `{station_count}` is 4 (S2 to S5; S1 is the cabin briefing). The team can decide it should be 5.
+- The route follows the terrain grid, so it bends in 45 degree steps and is up to about 8% longer
+  than a smooth path. Lengths are map distances, not along the slope.
+- The 14.55 degrees is the slope of the terrain samples under the route. Measured as the tilt of
+  the surface between samples, the steepest spot is 15.1 degrees (see DECISIONS.md).
+- The data tool now needs Node.js as well as Python.
+- Far away the ribbon is lifted a little above the ground (4 mm per metre of distance) so the
+  coarser distant terrain does not hide it; it can look slightly raised from the side.
+- In VR the number of triangles drawn per frame over both eyes (about 317,000) is above the
+  300,000 guide, and was close to it before this step (285,000). The scene itself holds 242,000.
+- The rover path has no button yet; the tablet's LAYERS tab (B4) will switch it.
+- Three checks in the old B1 test scripts (outside the repo) expect the B1 placeholders and now
+  fail by design.
+- Still open from B1: which way the panoramas face (B7), and 3.3 km/h against NASA's about 2 km/h.

@@ -50,11 +50,24 @@ Screenshots of the delta and where they were taken: `docs/screenshots/`.
 - `src/northMarker.js` - north marker for checking orientation (only with `?debug=1`)
 - `src/xr.js` - VR: teleport, snap turn
 - `src/frameMeter.js` - frame-time readout drawn in the scene
+- `src/mission/mission.js` - the Marswalk mission (only entry point; loads `data/mission/<site>.json`)
+- `src/mission/route.js` - slope-limited route maths: A* on the 2 m grid, walking time (no Three.js; also run by the tool)
+- `src/mission/ribbon.js` - ribbons draped on the terrain (planned route with moving chevrons, rover traverse)
+- `src/mission/beacons.js` - station beacons with labels that face the viewer
+- `src/mission/lowpoly.js` - shared low-poly palette, material and geometry merge
+- `tools/build_mission.py` - builds `data/mission/<site>.json`; plans the route through `tools/route_cli.mjs` (needs Node.js)
+
+On the delta patch the mission layer is loaded: a blue route ribbon, the rover's real path in
+orange, and a beacon at each station. The walk then starts on the route, 6 m from the start marker. Add
+`mission=0` to the address for the plain terrain viewer.
 
 Local frame: x = east, z = south, y = up, in metres, origin at the patch centre
 (y = 0 is the ground height at the centre).
 
 `window.__mars` (debug handle): `player` (x, y, z, headingDeg, elevationM),
 `setPose({ x, z, headingDeg, pitchDeg })`, `triangles`, `measureTriangles()`, `groundY(x, z)`.
+`window.__mars.mission` (null without a mission): `data`, `values` (card placeholders), `summary`
+(route length, times, slopes), `cardText(id)`, `setLayer('route' | 'traverse' | 'beacons', on)`,
+`beacons`, `spawn`, `planAgain()`, `stats()`.
 
 Design choices and the measurements behind them are in `DECISIONS.md`.

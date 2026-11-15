@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Build data/mission/<site>.json for the Jezero Marswalk mission (build step B1).
+"""Build data/mission/<site>.json for the Jezero Marswalk mission (build steps B1 and B2).
 
 Run from anywhere:
 
     uv run --python 3.12 --with numpy tools/build_mission.py            # jezero_delta
     python3 tools/build_mission.py                                      # same, if numpy is installed
 
-Needs Python 3 with numpy and the standard library only. It reads only files in
-this repo and writes one JSON file. It has no clock, no network and no random
-numbers, so running it twice gives the same bytes.
+Needs Python 3 with numpy and the standard library, plus Node.js (18 or newer)
+on the PATH: the planned route is computed by tools/route_cli.mjs, which runs the
+page's own route maths (src/mission/route.js), so there is one implementation.
+It reads only files in this repo and writes one JSON file. It has no clock, no
+network and no random numbers, so running it twice gives the same bytes.
 
 What is typed in here and what is computed:
   * Card texts, the fact bank, the Field Check and the layer credits are copied
@@ -23,6 +25,7 @@ What is typed in here and what is computed:
 import json
 import math
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -49,7 +52,6 @@ TOBLER_FACTOR = 0.8
 START_RADIUS_M = 300.0  # brief: "within ~300 m of the patch centre"
 START_WINDOW_M = 30.0  # mean slope is taken over a square of this size
 LINE_STEP_M = 1.0  # sampling step along straight lines
-S2_BACKOFF_M = 10.0  # provisional S2 stands this far before the first steep sample
 WAYPOINT_MATCH_M = 0.5  # traverse line ends are matched to rover waypoints within this
 
 # ---- Mission anchors named by the brief (numbers and ids only; positions come from the data) ----
@@ -408,26 +410,53 @@ steep_legs = [leg for leg in legs if leg["exceedsLimit"]]
 s2_leg = steep_legs[0] if steep_legs else max(legs, key=lambda leg: leg["directMaxSlopeDeg"])
 s2_fallback = not steep_legs  # brief: "if none exists in the patch, use the steepest line"
 
-# Provisional S2: on that straight line, S2_BACKOFF_M before the first sample above the limit
-# (or before the steepest sample in the fallback case). B2 moves it onto the planned route.
+# ------------------------------------------------------------------ planned route (B2)
+# The first place where that straight line gets too steep (or its steepest sample in the
+# fallback case). S2 is the point of the planned route nearest to it.
 along, xs, zs, slopes, first = s2_leg["_profile"]
 target = first if first is not None else int(np.argmax(slopes))
-i2 = int(np.searchsorted(along, max(0.0, along[target] - S2_BACKOFF_M), side="right") - 1)
-s2_xz = (float(xs[i2]), float(zs[i2]))
+s2_target = (float(xs[target]), float(zs[target]))
 
-# Provisional S3: the point of the rover traverse nearest to provisional S2 ("where the route
-# meets the traverse line" cannot be known before B2 plans the route).
-best_s3 = None
-for li, run in enumerate(runs):
-    pts = run["points"]
-    for k, (a, b) in enumerate(zip(pts, pts[1:])):
-        dx, dz = b[0] - a[0], b[1] - a[1]
-        t = max(0.0, min(1.0, ((s2_xz[0] - a[0]) * dx + (s2_xz[1] - a[1]) * dz) / (dx * dx + dz * dz)))
-        p = (a[0] + t * dx, a[1] + t * dz)
-        d = dist(p, s2_xz)
-        if best_s3 is None or d < best_s3[0]:
-            best_s3 = (d, p, li, run["sols"][k + 1])
-s3_dist, s3_xz, s3_line, s3_sol = best_s3
+# The route itself: A* on the 2 m grid, done by the page's own code (see the docstring).
+route_request = {
+    "site": SITE,
+    "assumptions": [
+        {"id": "slopeLimitDeg", "value": SLOPE_LIMIT_DEG},
+        {"id": "paceCapKmh", "value": PACE_CAP_KMH},
+        {"id": "toblerFactor", "value": TOBLER_FACTOR},
+        {"id": "stopMinutes", "value": STOP_MINUTES},
+    ],
+    "anchors": [{"id": name, "x": xz[0], "z": xz[1]} for name, xz in anchors],
+    "s2": {"leg": [s2_leg["from"], s2_leg["to"]], "target": list(s2_target)},
+    "traverseLines": [{"points": line["points"]} for line in traverse_lines],
+}
+try:
+    done = subprocess.run(
+        ["node", str(REPO / "tools" / "route_cli.mjs")],
+        input=json.dumps(route_request),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+except FileNotFoundError:
+    sys.exit("Node.js is needed to plan the route (tools/route_cli.mjs) and was not found on the PATH")
+if done.returncode != 0:
+    sys.exit(f"tools/route_cli.mjs failed:\n{done.stderr}")
+planned = json.loads(done.stdout)
+if not planned["ok"]:
+    # Never relax the slope limit to make a route exist: stop and say why.
+    sys.exit(f"NO ROUTE: {planned['reason']}")
+route_sum = planned["summary"]
+route_pts = planned["points"]
+if route_sum["maxSlopeDeg"] > SLOPE_LIMIT_DEG:
+    sys.exit("the planned route crosses ground above the slope limit")
+# The same check with this tool's own slope grid (64-bit; the page uses 32-bit heights).
+route_max_slope_here = max(bilinear(SLOPE, x, z) for x, z in route_pts)
+if route_max_slope_here > SLOPE_LIMIT_DEG + 1e-3:
+    sys.exit(f"route point on {route_max_slope_here:.3f} degree ground by this tool's slope grid")
+
+s2_xz = (planned["s2"]["x"], planned["s2"]["z"])
+s3_xz = (planned["s3"]["x"], planned["s3"]["z"])
 
 for leg in legs:
     del leg["_profile"]
@@ -680,30 +709,45 @@ def station(sid, title, xz, basis, **more):
     return out
 
 
+# Where each fixed station sits on the route, and how far the route end is from it (the route
+# runs through terrain sample centres; a station on or cut off by steep ground would show here).
+route_index = {leg["to"]: leg["last"] for leg in route_sum["legs"] if leg["to"] != "START"}
+route_moved = {snap["id"]: r2(snap["movedM"]) for snap in planned["snaps"]}
+
 stations = [
     station("S1", "Briefing", start_xz, "The start spot (rover cabin); see start.rule.", kind="cabin", provisional=False, card="S1"),
     station(
         "S2",
         "Read the ground",
         s2_xz,
-        f"PROVISIONAL (B2 moves it onto the planned route). On the straight line {s2_leg['from']} to {s2_leg['to']}, "
-        f"{S2_BACKOFF_M:g} m before the first sample steeper than {SLOPE_LIMIT_DEG:g} degrees.",
+        f"On the planned route: the route point nearest to the first place where the straight line {s2_leg['from']} to "
+        f"{s2_leg['to']} gets steeper than {SLOPE_LIMIT_DEG:g} degrees ({planned['s2']['distanceToTargetM']:.0f} m from it).",
         kind="slope",
-        provisional=True,
+        provisional=False,
         card="S2",
         leg=[s2_leg["from"], s2_leg["to"]],
+        routeIndex=planned["s2"]["index"],
+        directSteepPoint={"x": r1(s2_target[0]), "z": r1(s2_target[1])},
+        distanceToDirectSteepPointM=r1(planned["s2"]["distanceToTargetM"]),
     ),
     station(
         "S3",
         "Follow the rover",
         s3_xz,
-        "PROVISIONAL (B2 sets it where the planned route meets the traverse). The point of the rover traverse nearest to provisional S2.",
+        (
+            f"On the planned route: the first place after S2 where the route comes within {planned['s3']['meetWithinM']:g} m of the "
+            "rover traverse (the closest route point of that meeting)."
+            if planned["s3"]["meets"]
+            else "On the planned route: the route never meets the rover traverse before S4; this is the route point closest to it."
+        ),
         kind="traverse",
-        provisional=True,
+        provisional=False,
         card="S3",
-        traverseLine=s3_line,
-        traverseSol=s3_sol,
-        distanceFromS2M=r1(s3_dist),
+        routeIndex=planned["s3"]["index"],
+        meetsTraverse=planned["s3"]["meets"],
+        distanceToTraverseM=r2(planned["s3"]["distanceToTraverseM"]),
+        traverseLine=planned["s3"]["traverseLine"],
+        traverseSol=planned["s3"]["traverseSol"],
     ),
     station(
         "S4",
@@ -714,6 +758,8 @@ stations = [
         provisional=False,
         approximate=True,
         card="S4",
+        routeIndex=route_index["S4"],
+        routeEndMovedM=route_moved["S4"],
         samples=[BEREA_SAMPLE],
         feature=berea["feature"],
     ),
@@ -726,6 +772,8 @@ stations = [
         provisional=False,
         approximate=True,
         card=["S5A", "S5B"],
+        routeIndex=route_index["S5"],
+        routeEndMovedM=route_moved["S5"],
         samples=RIDGE_SAMPLES,
         panoramas=PANORAMAS,
         panoramaGapM=r1(pano_gap_m),
@@ -736,20 +784,22 @@ stations = [
 computed = {
     "sol_min": sol_min,
     "sol_max": sol_max,
-    "direct_max_slope": s2_leg["directMaxSlopeDeg"],
+    "direct_max_slope": route_sum["values"]["direct_max_slope"],
     "n_igneous": len(igneous),
     "ig_min": min(a["sol"] for a in igneous),
     "ig_max": max(a["sol"] for a in igneous),
-    "route_km": None,
-    "extra_min": None,
-    "station_count": None,
+    "route_km": route_sum["values"]["route_km"],
+    "extra_min": route_sum["values"]["extra_min"],
+    "station_count": route_sum["values"]["station_count"],
 }
+if computed["direct_max_slope"] != s2_leg["directMaxSlopeDeg"]:
+    sys.exit("the route code and this tool disagree on the straight line's highest slope")
 
 out = {
     "schema": 1,
     "mission": "Jezero Marswalk",
     "site": SITE,
-    "generatedBy": "tools/build_mission.py (build step B1); do not edit by hand, re-run the tool",
+    "generatedBy": "tools/build_mission.py (build steps B1, B2); do not edit by hand, re-run the tool",
     "brief": "docs/mission-brief.md",
     "dataRetrieved": DATA_RETRIEVED,
     "inputs": [
@@ -789,15 +839,63 @@ out = {
         "s2UsesFallback": s2_fallback,
     },
     "route": {
-        "status": "not computed in B1; B2 fills these",
-        "order": ["START", "S2", "S3", "S4", "S5", "START"],
-        "lengthM": None,
-        "route_km": None,
-        "extra_min": None,
-        "station_count": None,
-        "directMinutes": None,
-        "plannedMinutes": None,
-        "points": None,
+        "status": "planned",
+        "method": (
+            "A* over the 2 m terrain grid, 8 neighbours, by src/mission/route.js (run through tools/route_cli.mjs). A cell is "
+            f"walkable when its slope is at most {SLOPE_LIMIT_DEG:g} degrees; a diagonal step also needs both cells it passes "
+            "between to be walkable. Cost = walking time (pace ASSUMPTIONS above). Lengths are horizontal map distances. "
+            "The route runs START, S4, S5, START; S2 and S3 are points on its first leg (see their positionBasis)."
+        ),
+        "order": planned["order"],
+        "lengthM": r1(route_sum["lengthM"]),
+        "walkMinutes": r2(route_sum["walkMinutes"]),
+        "stopMinutes": route_sum["stopMinutes"],
+        "totalMinutes": r2(route_sum["totalMinutes"]),
+        "maxSlopeDeg": r2(route_sum["maxSlopeDeg"]),
+        "maxSlopeAt": {"x": r1(route_sum["maxSlopeAt"]["x"]), "z": r1(route_sum["maxSlopeAt"]["z"]), "alongM": r1(route_sum["maxSlopeAt"]["alongM"])},
+        "maxSlopeNote": "Steepest ground under the route: bilinear terrain slope sampled every 0.5 m along it.",
+        "maxGradeDeg": r2(route_sum["maxGradeDeg"]),
+        "climbM": r1(route_sum["climbM"]),
+        "route_km": computed["route_km"],
+        "extra_min": computed["extra_min"],
+        "station_count": computed["station_count"],
+        "stationCountRule": "Stations walked to: every entry of order except START (S1, the briefing, is in the cabin).",
+        "direct": {
+            "from": s2_leg["from"],
+            "to": s2_leg["to"],
+            "line": [list(planned["direct"]["from"]), list(planned["direct"]["to"])],
+            "routeFirst": planned["direct"]["first"],
+            "routeLast": planned["direct"]["last"],
+            "lengthM": r1(route_sum["direct"]["lengthM"]),
+            "minutes": r2(route_sum["direct"]["minutes"]),
+            "maxSlopeDeg": r2(route_sum["direct"]["maxSlopeDeg"]),
+            "plannedLengthM": r1(route_sum["planned"]["lengthM"]),
+            "plannedMinutes": r2(route_sum["planned"]["minutes"]),
+            "plannedMaxSlopeDeg": r2(route_sum["planned"]["maxSlopeDeg"]),
+            "note": "Straight line between the two stations against the planned route between the same two. Same pace rule for both; the straight line ignores the slope limit. Its time uses heights every 2 m, its slope samples are every 1 m.",
+        },
+        "directMinutes": r2(route_sum["direct"]["minutes"]),
+        "plannedMinutes": r2(route_sum["planned"]["minutes"]),
+        "legs": [
+            {
+                "from": leg["from"],
+                "to": leg["to"],
+                "first": leg["first"],
+                "last": leg["last"],
+                "lengthM": r1(leg["lengthM"]),
+                "minutes": r2(leg["minutes"]),
+                "maxSlopeDeg": r2(leg["maxSlopeDeg"]),
+                "climbM": r1(leg["climbM"]),
+            }
+            for leg in route_sum["legs"]
+        ],
+        "ends": [
+            {"id": snap["id"], "x": snap["x"], "z": snap["z"], "movedM": r2(snap["movedM"]), "ownCellWalkable": snap["ownCellWalkable"]}
+            for snap in planned["snaps"]
+        ],
+        "endsNote": "Route ends are the nearest terrain sample centre that can be reached on foot from the start; movedM is how far that is from the station.",
+        "pointFields": ["x", "z"],
+        "points": route_pts,
     },
     "traverse": {
         "source": "data/layers/traverses.geojson (Perseverance, NASA/JPL MMGIS), clipped to the patch; one line per unbroken stretch inside the patch",
@@ -833,7 +931,7 @@ out = {
     },
     "panoramas": panoramas,
     "computed": computed,
-    "computedNote": "Values for the {placeholders} in card texts. null = depends on the route, filled by B2 at runtime.",
+    "computedNote": "Values for the {placeholders} in card texts. The page recomputes the route-dependent ones (route_km, extra_min, station_count, direct_max_slope) from route.points and the terrain when it loads.",
     "facts": FACTS,
     "cards": cards,
     "fieldCheck": {"note": FIELD_CHECK_NOTE, "questions": FIELD_CHECK},
@@ -865,7 +963,7 @@ print(f"| START | {start['x']:.1f} | {start['z']:.1f} | {start['elevationM']:.1f
 for s in stations:
     print(
         f"| {s['id']} {s['title']} | {s['x']:.1f} | {s['z']:.1f} | {s['elevationM']:.1f} | {s['y']:.1f} | {s['slopeDeg']:.1f} | "
-        f"{s['distanceFromStartM']:.1f} | {'provisional' if s['provisional'] else ('data, approximate' if s.get('approximate') else 'rule')} |"
+        f"{s['distanceFromStartM']:.1f} | {'data, approximate' if s.get('approximate') else 'rule'} |"
     )
 print()
 print("| Straight leg | Length (m) | Max slope (deg) | Share above 15 deg | First steep at (m) |")
@@ -880,3 +978,12 @@ for line in traverse_lines:
 print(f"igneous: n={computed['n_igneous']}, sols {computed['ig_min']}-{computed['ig_max']}, farthest {out['igneous']['farthestFromLandingKm']} km from landing; not counted: {out['igneous']['notCounted']}")
 print(f"ridge: panoramas {pano_gap_m:.1f} m apart, {ridge_from_berea_m:.0f} m from Berea")
 print("card words: " + ", ".join(f"{k} {v['words']}" for k, v in cards.items()))
+print()
+print(f"route: {out['route']['lengthM']} m, {out['route']['walkMinutes']} min walking + {out['route']['stopMinutes']} min at {computed['station_count']} stops = {out['route']['totalMinutes']} min; steepest ground under it {out['route']['maxSlopeDeg']} deg (limit {SLOPE_LIMIT_DEG:g})")
+print("| Route leg | Length (m) | Time (min) | Steepest ground (deg) |")
+print("|---|---|---|---|")
+for leg in out["route"]["legs"]:
+    print(f"| {leg['from']} -> {leg['to']} | {leg['lengthM']} | {leg['minutes']} | {leg['maxSlopeDeg']} |")
+d = out["route"]["direct"]
+print(f"S2 comparison {d['from']} -> {d['to']}: straight {d['lengthM']} m in {d['minutes']} min (up to {d['maxSlopeDeg']} deg); planned {d['plannedLengthM']} m in {d['plannedMinutes']} min; extra_min = {computed['extra_min']}")
+print("route ends moved: " + ", ".join(f"{e['id']} {e['movedM']} m" for e in out["route"]["ends"]))
