@@ -47,13 +47,17 @@ export function createSky(scene) {
   dome.renderOrder = -1;
   scene.add(dome);
 
-  // Sun in the south-west, about 22 degrees above the horizon, so the gentle
-  // true-scale relief casts readable shading; warm dusty fill from the sky.
-  const sun = new THREE.DirectionalLight(0xfff0dc, 3.2);
-  sun.position.set(-0.66, 0.375, 0.66); // direction only (from the sun toward the origin)
+  // Sun low in the west (azimuth 265 degrees, 22 degrees up). The HiRISE photo
+  // draped on the terrain was taken with the sun in the west (measured: the
+  // photo's shading matches the terrain best for a sun azimuth of 255-285
+  // degrees), so the computed shading agrees with the shadows in the photo.
+  // The photo already contains real shading, so the computed sun is kept
+  // moderate and the sky fill fairly strong, to avoid doubling the contrast.
+  const sun = new THREE.DirectionalLight(0xfff0dc, 2.4);
+  sun.position.set(-0.924, 0.375, 0.081); // direction only (from the sun toward the origin)
   sun.name = 'sun';
   scene.add(sun);
-  const fill = new THREE.HemisphereLight(0xe8c8a0, 0x6b4a34, 0.8);
+  const fill = new THREE.HemisphereLight(0xe8c8a0, 0x6b4a34, 1.4);
   fill.name = 'sky-fill';
   scene.add(fill);
 

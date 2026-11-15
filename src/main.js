@@ -1,12 +1,71 @@
 import * as THREE from 'three';
 import { siteFromUrl, loadWalkPatch } from './data.js';
-import { buildTerrain } from './terrain.js';
+import { createTerrain } from './terrain.js';
+import { loadRegionGrid, createSurround } from './surround.js';
+import { createWalkMaterial, createSurroundMaterial } from './materials.js';
 import { createSky } from './sky.js';
 import { createPlayer, EYE_HEIGHT_M } from './controls.js';
 import { createNorthMarker } from './northMarker.js';
 
 const DEFAULT_SITE = 'jezero';
-const MAX_TRIANGLES = 250000; // whole scene must stay under about 300k
+
+// Which coarse regional grid (data/sites/<name>) surrounds a walk patch, when
+// the folder names differ.
+const REGION_FOR_SITE = { jezero_delta: 'jezero' };
+
+const PHOTO_LEVEL = 16;
+
+// Loads the pre-stitched photo of the patch (one request). Returns null if the
+// patch has none, in which case the terrain is drawn in the plain surface colour.
+async function loadPhoto(patch, renderer) {
+  const url = `${patch.folder}mosaic_${PHOTO_LEVEL}.jpg`;
+  let texture;
+  try {
+    texture = await new THREE.TextureLoader().loadAsync(url);
+  } catch {
+    return null;
+  }
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+
+  // Small copy of the image in linear light: gives the average brightness
+  // (for the tint) and the brightness along the patch edge (for the surround).
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(texture.image, 0, 0, size, size);
+  const pixels = ctx.getImageData(0, 0, size, size).data;
+  const linear = new Float32Array(size * size);
+  let sum = 0;
+  for (let i = 0; i < linear.length; i++) {
+    const s = pixels[i * 4] / 255;
+    linear[i] = s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+    sum += linear[i];
+  }
+  const meanLinear = sum / linear.length;
+  // Brightness relative to the average at local (x, z); row 0 of the image is north.
+  const relativeBrightness = (x, z) => {
+    const col = Math.min(Math.max(Math.floor((x / patch.sizeX + 0.5) * size), 0), size - 1);
+    const row = Math.min(Math.max(Math.floor((z / patch.sizeZ + 0.5) * size), 0), size - 1);
+    return linear[row * size + col] / meanLinear;
+  };
+  return {
+    texture,
+    url,
+    width: texture.image.width,
+    height: texture.image.height,
+    meanLinear,
+    relativeBrightness,
+  };
+}
 
 const statusEl = document.getElementById('status');
 const setStatus = (text) => {
@@ -28,8 +87,25 @@ async function start() {
 
   createSky(scene);
 
-  const terrain = buildTerrain(patch, { maxTriangles: MAX_TRIANGLES });
-  scene.add(terrain);
+  // Walk patch: real photo draped over level-of-detail terrain.
+  const photo = await loadPhoto(patch, renderer);
+  const terrain = createTerrain(patch, { material: createWalkMaterial(photo) });
+  scene.add(terrain.group);
+
+  // Distant terrain from the coarse regional grid, if there is one for this patch.
+  let surround = null;
+  let surroundNote = '';
+  try {
+    const grid = await loadRegionGrid(REGION_FOR_SITE[site] || site);
+    surround = createSurround(patch, grid, {
+      material: createSurroundMaterial(),
+      edgeBrightness: photo && photo.meanLinear > 0 ? photo.relativeBrightness : null,
+    });
+    if (surround) scene.add(surround.mesh);
+    else surroundNote = ' (the regional grid does not cover this patch)';
+  } catch (error) {
+    surroundNote = ` (no distant terrain: ${error.message})`;
+  }
 
   const player = createPlayer({ camera, scene, domElement: renderer.domElement, patch });
   const startLocal = patch.meta.start
@@ -48,15 +124,26 @@ async function start() {
   });
 
   const clock = new THREE.Clock();
+  const viewer = new THREE.Vector3();
   let frames = 0;
+  terrain.update(player.position.x, player.position.z);
   renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.1);
     player.update(dt);
+    // Level of detail follows the head (in VR the head can be away from the rig origin).
+    camera.getWorldPosition(viewer);
+    terrain.update(viewer.x, viewer.z);
     renderer.render(scene, camera);
     frames++;
   });
 
-  setStatus(`${site}: click to look around, WASD to walk, Shift to run, Esc to release the mouse`);
+  setStatus(
+    `${site}: click to look around, WASD to walk, Shift to run, Esc to release the mouse` +
+      (photo ? '' : ' (no photo for this patch)') +
+      surroundNote,
+  );
+
+  const sceneTriangles = () => terrain.triangles + (surround ? surround.triangles : 0);
 
   // Debug handle for automated tests.
   window.__mars = {
@@ -67,16 +154,44 @@ async function start() {
     camera,
     renderer,
     terrain,
+    surround,
+    photo: photo ? { url: photo.url, width: photo.width, height: photo.height, meanLinear: photo.meanLinear } : null,
     northMarker,
     eyeHeightM: EYE_HEIGHT_M,
     get frames() {
       return frames;
     },
+    // Terrain triangles in the scene right now (walk patch at its current
+    // levels of detail + distant terrain), whether or not they are in view.
     get triangles() {
-      return terrain.userData.triangles;
+      return sceneTriangles();
     },
+    // Triangles the renderer drew in the last frame (only what was in view).
     get renderedTriangles() {
       return renderer.info.render.triangles;
+    },
+    // Draws one frame with view culling off, so renderer.info counts every
+    // triangle in the scene, then restores culling.
+    measureTriangles() {
+      const meshes = [];
+      scene.traverse((object) => {
+        if (object.isMesh && object.frustumCulled) meshes.push(object);
+      });
+      meshes.forEach((mesh) => (mesh.frustumCulled = false));
+      renderer.render(scene, camera);
+      const all = { triangles: renderer.info.render.triangles, calls: renderer.info.render.calls };
+      meshes.forEach((mesh) => (mesh.frustumCulled = true));
+      renderer.render(scene, camera);
+      return {
+        allTriangles: all.triangles,
+        allDrawCalls: all.calls,
+        inViewTriangles: renderer.info.render.triangles,
+        inViewDrawCalls: renderer.info.render.calls,
+        terrain: terrain.stats(),
+        surroundTriangles: surround ? surround.triangles : 0,
+        textures: renderer.info.memory.textures,
+        geometries: renderer.info.memory.geometries,
+      };
     },
     // x east, z south (metres from the patch centre); y is the feet,
     // eyeY the camera; heading in degrees clockwise from north.
@@ -98,6 +213,7 @@ async function start() {
       }
       if (headingDeg !== undefined) player.setHeading(headingDeg);
       if (pitchDeg !== undefined) player.setPitch(pitchDeg);
+      terrain.update(player.position.x, player.position.z);
       return window.__mars.player;
     },
     groundY: (x, z) => patch.groundY(x, z),
