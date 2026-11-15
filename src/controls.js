@@ -2,11 +2,16 @@ import * as THREE from 'three';
 
 // Desktop walking: WASD (or arrow keys to turn) + mouse look with pointer lock.
 //
-// The player is a "rig" group standing on the ground: rig.position is the
-// feet, rig.rotation.y the heading. The camera is a child raised to eye
-// height. In WebXR (step 5) the headset drives the camera inside the same rig
-// and the local-floor space supplies the eye height, so teleport and snap
-// turn only need to call setPosition / setHeading.
+// The player is a "rig" group standing on the ground: rig.rotation.y is the
+// heading and rig.position.y the ground height under the user. On desktop the
+// camera is a child raised to eye height, so rig.position is the feet.
+//
+// In WebXR the headset drives the camera inside the same rig. The rig origin
+// is then the centre of the user's real floor ('local-floor' space) and the
+// user may be standing somewhere else in the room, so the VR code moves the
+// rig with moveHeadTo / turnAboutHead / followGround, which all work from
+// where the head actually is. Keyboard and mouse are ignored while in VR
+// (no smooth movement in the headset).
 //
 // Heading is in degrees clockwise from north: 0 = north (-z), 90 = east (+x).
 
@@ -22,10 +27,14 @@ export function createPlayer({ camera, scene, domElement, patch }) {
   scene.add(rig);
 
   const state = { headingDeg: 0, pitchDeg: 0, walkSpeed: 3, runSpeed: 15, turnSpeedDeg: 70 };
+
   const keys = new Set();
+  let desktopInput = true;
+  const head = new THREE.Vector3();
 
   function applyLook() {
     rig.rotation.y = -THREE.MathUtils.degToRad(state.headingDeg);
+    if (!desktopInput) return; // in VR the headset owns the camera
     camera.rotation.set(THREE.MathUtils.degToRad(state.pitchDeg), 0, 0);
   }
 
@@ -60,7 +69,7 @@ export function createPlayer({ camera, scene, domElement, patch }) {
     }
   });
   document.addEventListener('mousemove', (event) => {
-    if (document.pointerLockElement !== domElement) return;
+    if (!desktopInput || document.pointerLockElement !== domElement) return;
     setHeading(state.headingDeg + event.movementX * 0.12);
     setPitch(state.pitchDeg - event.movementY * 0.12);
   });
@@ -71,7 +80,62 @@ export function createPlayer({ camera, scene, domElement, patch }) {
   window.addEventListener('keyup', (event) => keys.delete(event.code));
   window.addEventListener('blur', () => keys.clear());
 
+  // World position of the head (the camera), up to date with the rig.
+  function headPosition(target = new THREE.Vector3()) {
+    rig.updateWorldMatrix(true, false);
+    return target.copy(camera.position).applyMatrix4(rig.matrixWorld);
+  }
+
+  // Move the rig so the head is straight above ground point (x, z) and the
+  // rig's floor is at the ground height there. Refuses (returns false) outside
+  // the walkable patch or where there is no ground data.
+  function moveHeadTo(x, z) {
+    const b = patch.bounds;
+    if (!(x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ)) return false;
+    const y = patch.groundY(x, z);
+    if (Number.isNaN(y)) return false;
+    headPosition(head);
+    rig.position.set(rig.position.x + x - head.x, y, rig.position.z + z - head.z);
+    return true;
+  }
+
+  // Turn the rig by `deg` (clockwise seen from above) about the vertical line
+  // through the head, so the user turns on the spot wherever they stand.
+  function turnAboutHead(deg) {
+    headPosition(head);
+    const x = head.x;
+    const z = head.z;
+    setHeading(state.headingDeg + deg);
+    headPosition(head);
+    rig.position.x += x - head.x;
+    rig.position.z += z - head.z;
+  }
+
+  // Keep the rig's floor at the ground height under the head (the user can
+  // take real steps inside the room).
+  function followGround() {
+    headPosition(head);
+    const y = patch.groundY(head.x, head.z);
+    if (!Number.isNaN(y)) rig.position.y = y;
+  }
+
+  // Entering VR: the headset takes over the camera. Leaving VR: stand where
+  // the head was and give the camera back to the mouse.
+  function setDesktopInput(enabled) {
+    if (enabled === desktopInput) return;
+    desktopInput = enabled;
+    keys.clear();
+    if (enabled) {
+      headPosition(head);
+      camera.position.set(0, EYE_HEIGHT_M, 0);
+      camera.scale.set(1, 1, 1);
+      setPitch(0);
+      setPosition(head.x, head.z);
+    }
+  }
+
   function update(dt) {
+    if (!desktopInput) return;
     const turn = (keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0);
     if (turn) setHeading(state.headingDeg + turn * state.turnSpeedDeg * dt);
 
@@ -99,6 +163,11 @@ export function createPlayer({ camera, scene, domElement, patch }) {
     setPosition,
     setHeading,
     setPitch,
+    headPosition,
+    moveHeadTo,
+    turnAboutHead,
+    followGround,
+    setDesktopInput,
     get position() {
       return rig.position;
     },
