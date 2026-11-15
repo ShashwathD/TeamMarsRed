@@ -1,0 +1,2220 @@
+{
+ "schema": 1,
+ "mission": "Jezero Marswalk",
+ "site": "jezero_delta",
+ "generatedBy": "tools/build_mission.py (build step B1); do not edit by hand, re-run the tool",
+ "brief": "docs/mission-brief.md",
+ "dataRetrieved": "2026-09-29",
+ "inputs": [
+  "data/walk/jezero_delta/walk.json",
+  "data/walk/jezero_delta/dem.bin",
+  "data/activities.json",
+  "data/stops/m20.json",
+  "data/layers/traverses.geojson",
+  "data/pano/m20/index.json"
+ ],
+ "frame": {
+  "note": "Local metres: x east, z south, y up, origin at the patch centre; y = 0 is the ground at the centre. Same as src/data.js.",
+  "originElevationM": -2452.08,
+  "sizeM": [
+   2000.0,
+   2000.0
+  ],
+  "spacingM": 2.0,
+  "bounds": {
+   "minX": -999.0,
+   "maxX": 999.0,
+   "minZ": -999.0,
+   "maxZ": 999.0
+  }
+ },
+ "terrain": {
+  "slopeMethod": "Central differences on the 2 m height grid; slope = atan(|gradient|). Point values are bilinear samples of that slope grid.",
+  "shareSteeperThanLimit": 0.1311,
+  "shareAmber": 0.1583,
+  "medianSlopeDeg": 6.26,
+  "slopeBandsDeg": {
+   "amberFrom": 10.0,
+   "redAbove": 15.0
+  }
+ },
+ "assumptions": [
+  {
+   "id": "evaHours",
+   "value": 8,
+   "unit": "h",
+   "label": "ASSUMPTION",
+   "text": "One EVA lasts 8 hours in total."
+  },
+  {
+   "id": "reserveHours",
+   "value": 1,
+   "unit": "h",
+   "label": "ASSUMPTION",
+   "text": "1 hour of the EVA is kept as reserve."
+  },
+  {
+   "id": "slopeLimitDeg",
+   "value": 15.0,
+   "unit": "deg",
+   "label": "ASSUMPTION",
+   "text": "Suited explorers avoid ground steeper than 15 degrees."
+  },
+  {
+   "id": "paceCapKmh",
+   "value": 3.3,
+   "unit": "km/h",
+   "label": "ASSUMPTION",
+   "text": "Walking pace is capped at 3.3 km/h."
+  },
+  {
+   "id": "stopMinutes",
+   "value": 20,
+   "unit": "min",
+   "label": "ASSUMPTION",
+   "text": "Each station takes 20 minutes."
+  },
+  {
+   "id": "toblerFactor",
+   "value": 0.8,
+   "unit": "x",
+   "label": "ASSUMPTION",
+   "text": "Pace on slopes follows Tobler's hiking function times 0.8.",
+   "formula": "speed_kmh = min(paceCapKmh, toblerFactor * 6 * exp(-3.5 * abs(tan(slope_along_path) + 0.05)))"
+  }
+ ],
+ "start": {
+  "x": 227.0,
+  "z": -95.0,
+  "y": -8.3,
+  "elevationM": -2460.38,
+  "slopeDeg": 0.9,
+  "lon": 77.39433766,
+  "lat": 18.47380271,
+  "windowMeanSlopeDeg": 1.04,
+  "windowMaxSlopeDeg": 2.99,
+  "distanceFromCentreM": 246.1,
+  "candidateWindows": 53210,
+  "rule": "Centre of the 30 m x 30 m window (15 x 15 terrain samples) with the lowest mean slope, among windows whose centre is within 300 m of the patch centre and that contain no sample steeper than 15 degrees. Ties: nearest the centre."
+ },
+ "stations": [
+  {
+   "id": "S1",
+   "title": "Briefing",
+   "x": 227.0,
+   "z": -95.0,
+   "y": -8.3,
+   "elevationM": -2460.38,
+   "slopeDeg": 0.9,
+   "lon": 77.39433766,
+   "lat": 18.47380271,
+   "distanceFromStartM": 0.0,
+   "positionBasis": "The start spot (rover cabin); see start.rule.",
+   "kind": "cabin",
+   "provisional": false,
+   "card": "S1"
+  },
+  {
+   "id": "S2",
+   "title": "Read the ground",
+   "x": 168.81,
+   "z": -73.71,
+   "y": -4.79,
+   "elevationM": -2456.87,
+   "slopeDeg": 9.8,
+   "lon": 77.39330268,
+   "lat": 18.4734436,
+   "distanceFromStartM": 62.0,
+   "positionBasis": "PROVISIONAL (B2 moves it onto the planned route). On the straight line START to S4, 10 m before the first sample steeper than 15 degrees.",
+   "kind": "slope",
+   "provisional": true,
+   "card": "S2",
+   "leg": [
+    "START",
+    "S4"
+   ]
+  },
+  {
+   "id": "S3",
+   "title": "Follow the rover",
+   "x": 213.51,
+   "z": -187.95,
+   "y": -22.91,
+   "elevationM": -2474.99,
+   "slopeDeg": 6.5,
+   "lon": 77.39409775,
+   "lat": 18.47537085,
+   "distanceFromStartM": 93.9,
+   "positionBasis": "PROVISIONAL (B2 sets it where the planned route meets the traverse). The point of the rover traverse nearest to provisional S2.",
+   "kind": "traverse",
+   "provisional": true,
+   "card": "S3",
+   "traverseLine": 2,
+   "traverseSol": 718,
+   "distanceFromS2M": 122.7
+  },
+  {
+   "id": "S4",
+   "title": "Berea: first core",
+   "x": -354.87,
+   "z": 117.86,
+   "y": 3.03,
+   "elevationM": -2449.05,
+   "slopeDeg": 3.0,
+   "lon": 77.38398791,
+   "lat": 18.47021163,
+   "distanceFromStartM": 619.6,
+   "positionBasis": "Sample 19 in data/activities.json (rover waypoint at sol 736). Approximate.",
+   "kind": "core",
+   "provisional": false,
+   "approximate": true,
+   "card": "S4",
+   "samples": [
+    19
+   ],
+   "feature": "Berea"
+  },
+  {
+   "id": "S5",
+   "title": "Ridge lookout",
+   "x": 885.28,
+   "z": 796.0,
+   "y": -70.4,
+   "elevationM": -2522.48,
+   "slopeDeg": 9.1,
+   "lon": 77.40604651,
+   "lat": 18.458771,
+   "distanceFromStartM": 1107.8,
+   "positionBasis": "Midpoint of the rover waypoints of panoramas 26_1004 and 26_1222 (data/stops/m20.json). Approximate.",
+   "kind": "lookout",
+   "provisional": false,
+   "approximate": true,
+   "card": [
+    "S5A",
+    "S5B"
+   ],
+   "samples": [
+    10,
+    11,
+    12,
+    13
+   ],
+   "panoramas": [
+    "26_1004",
+    "26_1222"
+   ],
+   "panoramaGapM": 20.1,
+   "distanceFromBereaM": 1413.5
+  }
+ ],
+ "legs": {
+  "note": "Straight lines between the stations whose positions do not depend on the route, sampled every 1 m.",
+  "list": [
+   {
+    "from": "START",
+    "to": "S4",
+    "straightLengthM": 619.6,
+    "directMaxSlopeDeg": 19.5,
+    "directMaxSlopeAt": {
+     "x": 103.1,
+     "z": -49.7,
+     "alongM": 131.9
+    },
+    "exceedsLimit": true,
+    "steepShare": 0.021,
+    "firstSteepAlongM": 73.0
+   },
+   {
+    "from": "S4",
+    "to": "S5",
+    "straightLengthM": 1413.5,
+    "directMaxSlopeDeg": 29.4,
+    "directMaxSlopeAt": {
+     "x": 852.0,
+     "z": 777.8,
+     "alongM": 1375.5
+    },
+    "exceedsLimit": true,
+    "steepShare": 0.054,
+    "firstSteepAlongM": 23.0
+   },
+   {
+    "from": "S5",
+    "to": "START",
+    "straightLengthM": 1107.8,
+    "directMaxSlopeDeg": 32.3,
+    "directMaxSlopeAt": {
+     "x": 875.2,
+     "z": 782.3,
+     "alongM": 17.0
+    },
+    "exceedsLimit": true,
+    "steepShare": 0.07,
+    "firstSteepAlongM": 3.0
+   }
+  ],
+  "s2Leg": [
+   "START",
+   "S4"
+  ],
+  "s2Rule": "First leg, in walking order, whose straight line crosses ground steeper than 15 degrees.",
+  "s2UsesFallback": false
+ },
+ "route": {
+  "status": "not computed in B1; B2 fills these",
+  "order": [
+   "START",
+   "S2",
+   "S3",
+   "S4",
+   "S5",
+   "START"
+  ],
+  "lengthM": null,
+  "route_km": null,
+  "extra_min": null,
+  "station_count": null,
+  "directMinutes": null,
+  "plannedMinutes": null,
+  "points": null
+ },
+ "traverse": {
+  "source": "data/layers/traverses.geojson (Perseverance, NASA/JPL MMGIS), clipped to the patch; one line per unbroken stretch inside the patch",
+  "solsFrom": "data/stops/m20.json. The traverse file carries no sols (its only property is the rover name). Each drive line ends at a rover waypoint (matched within 0.5 m); a point's sol is the sol of the waypoint that ends its drive.",
+  "solRangeBasis": "Lowest and highest sol among the drives that have any part inside the patch (a drive that crosses the patch edge counts). The same sols are on the points of the lines below.",
+  "sol_min": 443,
+  "sol_max": 764,
+  "drivesInside": 34,
+  "waypointsInside": 43,
+  "waypointSolRange": [
+   443,
+   763
+  ],
+  "lengthM": 4015.8,
+  "lines": [
+   {
+    "solFirst": 443,
+    "solLast": 536,
+    "lengthM": 395.7,
+    "pointFields": [
+     "x",
+     "z",
+     "y",
+     "sol"
+    ],
+    "points": [
+     [
+      999.0,
+      866.27,
+      -84.04,
+      443
+     ],
+     [
+      965.28,
+      869.73,
+      -84.0,
+      443
+     ],
+     [
+      956.06,
+      868.86,
+      -83.82,
+      448
+     ],
+     [
+      947.03,
+      864.28,
+      -82.49,
+      448
+     ],
+     [
+      929.44,
+      871.18,
+      -83.48,
+      448
+     ],
+     [
+      901.67,
+      874.59,
+      -83.53,
+      448
+     ],
+     [
+      900.53,
+      868.79,
+      -82.41,
+      449
+     ],
+     [
+      899.61,
+      870.76,
+      -82.76,
+      449
+     ],
+     [
+      898.24,
+      848.2,
+      -77.9,
+      455
+     ],
+     [
+      910.96,
+      844.75,
+      -76.75,
+      456
+     ],
+     [
+      910.64,
+      840.7,
+      -75.39,
+      456
+     ],
+     [
+      911.29,
+      836.56,
+      -74.49,
+      460
+     ],
+     [
+      907.59,
+      835.98,
+      -74.51,
+      460
+     ],
+     [
+      901.63,
+      823.27,
+      -72.87,
+      460
+     ],
+     [
+      887.87,
+      811.21,
+      -72.11,
+      460
+     ],
+     [
+      894.29,
+      799.44,
+      -71.25,
+      461
+     ],
+     [
+      890.79,
+      800.69,
+      -71.24,
+      461
+     ],
+     [
+      881.02,
+      799.16,
+      -70.61,
+      464
+     ],
+     [
+      883.38,
+      794.66,
+      -70.05,
+      464
+     ],
+     [
+      880.19,
+      797.05,
+      -70.24,
+      474
+     ],
+     [
+      885.12,
+      795.89,
+      -70.37,
+      474
+     ],
+     [
+      888.29,
+      790.97,
+      -69.3,
+      474
+     ],
+     [
+      887.35,
+      792.83,
+      -70.04,
+      477
+     ],
+     [
+      891.23,
+      793.37,
+      -70.33,
+      477
+     ],
+     [
+      892.09,
+      788.63,
+      -68.84,
+      477
+     ],
+     [
+      890.73,
+      795.5,
+      -70.63,
+      501
+     ],
+     [
+      879.95,
+      800.51,
+      -70.76,
+      501
+     ],
+     [
+      878.45,
+      803.33,
+      -71.1,
+      502
+     ],
+     [
+      903.76,
+      820.46,
+      -72.74,
+      535
+     ],
+     [
+      913.07,
+      822.01,
+      -72.99,
+      535
+     ],
+     [
+      944.4,
+      819.38,
+      -73.09,
+      535
+     ],
+     [
+      957.31,
+      820.94,
+      -73.43,
+      535
+     ],
+     [
+      963.81,
+      824.89,
+      -74.29,
+      536
+     ],
+     [
+      969.69,
+      825.81,
+      -74.49,
+      536
+     ],
+     [
+      994.59,
+      825.83,
+      -74.26,
+      536
+     ],
+     [
+      999.0,
+      826.75,
+      -74.39,
+      536
+     ]
+    ]
+   },
+   {
+    "solFirst": 539,
+    "solLast": 539,
+    "lengthM": 17.3,
+    "pointFields": [
+     "x",
+     "z",
+     "y",
+     "sol"
+    ],
+    "points": [
+     [
+      999.0,
+      983.74,
+      -91.38,
+      539
+     ],
+     [
+      990.87,
+      999.0,
+      -91.46,
+      539
+     ]
+    ]
+   },
+   {
+    "solFirst": 708,
+    "solLast": 764,
+    "lengthM": 3602.8,
+    "pointFields": [
+     "x",
+     "z",
+     "y",
+     "sol"
+    ],
+    "points": [
+     [
+      999.0,
+      786.67,
+      -68.81,
+      708
+     ],
+     [
+      975.3,
+      772.67,
+      -67.1,
+      708
+     ],
+     [
+      969.9,
+      765.83,
+      -65.87,
+      708
+     ],
+     [
+      956.26,
+      761.21,
+      -65.49,
+      708
+     ],
+     [
+      936.25,
+      759.88,
+      -65.3,
+      708
+     ],
+     [
+      926.47,
+      752.29,
+      -63.09,
+      708
+     ],
+     [
+      917.9,
+      753.42,
+      -62.9,
+      708
+     ],
+     [
+      909.46,
+      742.53,
+      -60.45,
+      708
+     ],
+     [
+      910.27,
+      734.9,
+      -59.35,
+      708
+     ],
+     [
+      907.91,
+      730.65,
+      -58.7,
+      708
+     ],
+     [
+      882.92,
+      720.14,
+      -57.43,
+      708
+     ],
+     [
+      873.77,
+      718.73,
+      -57.56,
+      708
+     ],
+     [
+      859.79,
+      710.58,
+      -56.05,
+      709
+     ],
+     [
+      845.57,
+      706.28,
+      -55.53,
+      709
+     ],
+     [
+      840.95,
+      700.1,
+      -54.39,
+      709
+     ],
+     [
+      829.47,
+      692.54,
+      -53.39,
+      709
+     ],
+     [
+      823.03,
+      680.33,
+      -51.62,
+      709
+     ],
+     [
+      819.77,
+      669.77,
+      -49.97,
+      709
+     ],
+     [
+      811.9,
+      661.66,
+      -49.11,
+      709
+     ],
+     [
+      805.57,
+      650.47,
+      -47.66,
+      709
+     ],
+     [
+      802.29,
+      648.4,
+      -47.6,
+      709
+     ],
+     [
+      794.77,
+      646.15,
+      -47.83,
+      709
+     ],
+     [
+      775.37,
+      645.08,
+      -47.42,
+      709
+     ],
+     [
+      710.31,
+      624.1,
+      -44.66,
+      709
+     ],
+     [
+      715.57,
+      616.39,
+      -44.07,
+      713
+     ],
+     [
+      713.43,
+      607.67,
+      -42.78,
+      713
+     ],
+     [
+      716.89,
+      593.02,
+      -42.43,
+      713
+     ],
+     [
+      720.73,
+      587.42,
+      -42.74,
+      713
+     ],
+     [
+      721.25,
+      581.79,
+      -42.56,
+      713
+     ],
+     [
+      727.85,
+      580.6,
+      -42.71,
+      713
+     ],
+     [
+      726.97,
+      575.59,
+      -42.58,
+      713
+     ],
+     [
+      699.68,
+      532.56,
+      -40.12,
+      713
+     ],
+     [
+      678.58,
+      510.79,
+      -38.45,
+      713
+     ],
+     [
+      663.26,
+      483.66,
+      -39.16,
+      713
+     ],
+     [
+      662.87,
+      449.37,
+      -40.15,
+      714
+     ],
+     [
+      657.87,
+      423.39,
+      -39.4,
+      714
+     ],
+     [
+      645.51,
+      423.31,
+      -39.0,
+      714
+     ],
+     [
+      615.29,
+      430.44,
+      -38.56,
+      714
+     ],
+     [
+      599.8,
+      430.84,
+      -38.21,
+      714
+     ],
+     [
+      581.19,
+      395.99,
+      -38.34,
+      714
+     ],
+     [
+      569.48,
+      371.76,
+      -38.14,
+      715
+     ],
+     [
+      567.21,
+      363.07,
+      -38.25,
+      715
+     ],
+     [
+      566.55,
+      318.4,
+      -37.66,
+      715
+     ],
+     [
+      563.02,
+      283.83,
+      -36.29,
+      715
+     ],
+     [
+      554.34,
+      256.57,
+      -35.23,
+      715
+     ],
+     [
+      545.16,
+      239.06,
+      -35.12,
+      715
+     ],
+     [
+      538.55,
+      213.01,
+      -34.88,
+      715
+     ],
+     [
+      527.71,
+      181.66,
+      -34.04,
+      716
+     ],
+     [
+      528.4,
+      149.13,
+      -33.55,
+      716
+     ],
+     [
+      525.3,
+      134.74,
+      -33.18,
+      716
+     ],
+     [
+      512.13,
+      107.53,
+      -32.14,
+      716
+     ],
+     [
+      507.29,
+      102.0,
+      -31.92,
+      716
+     ],
+     [
+      498.74,
+      74.9,
+      -31.1,
+      716
+     ],
+     [
+      496.92,
+      63.3,
+      -30.87,
+      716
+     ],
+     [
+      493.25,
+      56.36,
+      -30.89,
+      716
+     ],
+     [
+      492.63,
+      42.88,
+      -31.04,
+      716
+     ],
+     [
+      498.05,
+      24.33,
+      -31.61,
+      717
+     ],
+     [
+      494.49,
+      8.44,
+      -31.11,
+      717
+     ],
+     [
+      496.02,
+      -17.92,
+      -30.5,
+      717
+     ],
+     [
+      487.18,
+      -50.03,
+      -29.01,
+      717
+     ],
+     [
+      477.43,
+      -74.12,
+      -29.44,
+      717
+     ],
+     [
+      468.11,
+      -85.33,
+      -29.24,
+      717
+     ],
+     [
+      451.86,
+      -97.39,
+      -28.1,
+      717
+     ],
+     [
+      418.72,
+      -120.06,
+      -26.98,
+      717
+     ],
+     [
+      401.1,
+      -128.54,
+      -26.07,
+      717
+     ],
+     [
+      389.98,
+      -129.9,
+      -25.38,
+      718
+     ],
+     [
+      360.99,
+      -138.85,
+      -24.12,
+      718
+     ],
+     [
+      337.52,
+      -143.69,
+      -22.99,
+      718
+     ],
+     [
+      288.35,
+      -167.87,
+      -23.59,
+      718
+     ],
+     [
+      274.77,
+      -171.14,
+      -23.08,
+      718
+     ],
+     [
+      263.54,
+      -170.69,
+      -23.04,
+      718
+     ],
+     [
+      213.51,
+      -187.95,
+      -22.91,
+      718
+     ],
+     [
+      163.74,
+      -210.99,
+      -21.25,
+      719
+     ],
+     [
+      133.19,
+      -210.65,
+      -17.86,
+      719
+     ],
+     [
+      105.79,
+      -203.68,
+      -13.76,
+      719
+     ],
+     [
+      67.88,
+      -205.47,
+      -11.61,
+      719
+     ],
+     [
+      31.68,
+      -201.73,
+      -11.72,
+      719
+     ],
+     [
+      3.79,
+      -203.67,
+      -10.83,
+      719
+     ],
+     [
+      -2.54,
+      -203.6,
+      -10.73,
+      727
+     ],
+     [
+      -4.27,
+      -222.01,
+      -11.77,
+      727
+     ],
+     [
+      -7.13,
+      -225.93,
+      -11.75,
+      727
+     ],
+     [
+      -15.46,
+      -224.51,
+      -11.63,
+      727
+     ],
+     [
+      -22.08,
+      -217.53,
+      -11.14,
+      727
+     ],
+     [
+      -26.11,
+      -203.63,
+      -10.48,
+      727
+     ],
+     [
+      -29.75,
+      -177.3,
+      -8.97,
+      727
+     ],
+     [
+      -26.6,
+      -157.42,
+      -8.09,
+      727
+     ],
+     [
+      -27.2,
+      -132.91,
+      -7.01,
+      727
+     ],
+     [
+      -27.45,
+      -135.9,
+      -7.34,
+      731
+     ],
+     [
+      -35.16,
+      -137.26,
+      -7.93,
+      731
+     ],
+     [
+      -52.53,
+      -135.13,
+      -8.93,
+      731
+     ],
+     [
+      -70.97,
+      -142.39,
+      -9.91,
+      731
+     ],
+     [
+      -87.96,
+      -142.75,
+      -10.49,
+      731
+     ],
+     [
+      -111.95,
+      -151.93,
+      -10.67,
+      731
+     ],
+     [
+      -120.87,
+      -151.17,
+      -10.85,
+      731
+     ],
+     [
+      -144.05,
+      -155.79,
+      -10.69,
+      731
+     ],
+     [
+      -157.91,
+      -151.78,
+      -10.24,
+      731
+     ],
+     [
+      -179.2,
+      -154.64,
+      -9.55,
+      731
+     ],
+     [
+      -183.48,
+      -152.94,
+      -9.15,
+      731
+     ],
+     [
+      -201.41,
+      -131.69,
+      -7.75,
+      731
+     ],
+     [
+      -205.53,
+      -115.95,
+      -6.23,
+      731
+     ],
+     [
+      -206.03,
+      -103.77,
+      -5.3,
+      731
+     ],
+     [
+      -203.82,
+      -95.39,
+      -5.28,
+      731
+     ],
+     [
+      -203.9,
+      -84.57,
+      -5.18,
+      731
+     ],
+     [
+      -197.79,
+      -52.16,
+      -3.54,
+      731
+     ],
+     [
+      -199.52,
+      -43.19,
+      -3.16,
+      731
+     ],
+     [
+      -201.19,
+      -37.56,
+      -2.99,
+      732
+     ],
+     [
+      -205.52,
+      -34.1,
+      -3.05,
+      732
+     ],
+     [
+      -205.92,
+      -28.46,
+      -2.95,
+      732
+     ],
+     [
+      -186.9,
+      39.7,
+      -1.5,
+      732
+     ],
+     [
+      -186.84,
+      46.76,
+      -1.03,
+      732
+     ],
+     [
+      -180.42,
+      53.2,
+      -1.03,
+      732
+     ],
+     [
+      -177.93,
+      58.36,
+      -1.21,
+      732
+     ],
+     [
+      -181.71,
+      66.83,
+      -1.79,
+      732
+     ],
+     [
+      -219.35,
+      96.76,
+      -1.06,
+      732
+     ],
+     [
+      -242.38,
+      99.27,
+      0.84,
+      732
+     ],
+     [
+      -259.71,
+      95.73,
+      2.03,
+      732
+     ],
+     [
+      -305.75,
+      93.31,
+      2.39,
+      732
+     ],
+     [
+      -313.35,
+      95.57,
+      2.1,
+      732
+     ],
+     [
+      -337.8,
+      108.59,
+      2.9,
+      732
+     ],
+     [
+      -348.09,
+      118.56,
+      3.07,
+      736
+     ],
+     [
+      -354.87,
+      117.86,
+      3.03,
+      736
+     ],
+     [
+      -352.91,
+      118.19,
+      3.01,
+      753
+     ],
+     [
+      -368.83,
+      72.81,
+      2.9,
+      753
+     ],
+     [
+      -373.11,
+      70.71,
+      3.17,
+      753
+     ],
+     [
+      -386.48,
+      68.92,
+      3.62,
+      753
+     ],
+     [
+      -400.05,
+      76.58,
+      3.32,
+      753
+     ],
+     [
+      -415.75,
+      77.87,
+      2.95,
+      753
+     ],
+     [
+      -430.92,
+      74.92,
+      2.2,
+      753
+     ],
+     [
+      -447.66,
+      75.1,
+      1.66,
+      753
+     ],
+     [
+      -475.41,
+      71.41,
+      1.1,
+      753
+     ],
+     [
+      -485.42,
+      76.01,
+      1.38,
+      753
+     ],
+     [
+      -499.21,
+      72.47,
+      1.17,
+      753
+     ],
+     [
+      -504.9,
+      68.75,
+      1.05,
+      753
+     ],
+     [
+      -507.11,
+      63.4,
+      0.97,
+      753
+     ],
+     [
+      -515.58,
+      56.88,
+      1.06,
+      753
+     ],
+     [
+      -522.4,
+      57.99,
+      0.87,
+      753
+     ],
+     [
+      -539.59,
+      66.92,
+      1.56,
+      753
+     ],
+     [
+      -546.89,
+      68.64,
+      1.7,
+      753
+     ],
+     [
+      -562.61,
+      89.82,
+      2.72,
+      753
+     ],
+     [
+      -568.41,
+      93.64,
+      3.41,
+      753
+     ],
+     [
+      -598.82,
+      99.36,
+      8.02,
+      753
+     ],
+     [
+      -617.75,
+      107.38,
+      9.5,
+      753
+     ],
+     [
+      -624.56,
+      98.38,
+      9.33,
+      755
+     ],
+     [
+      -635.75,
+      92.65,
+      9.36,
+      755
+     ],
+     [
+      -643.06,
+      91.46,
+      9.49,
+      755
+     ],
+     [
+      -652.05,
+      84.67,
+      9.77,
+      755
+     ],
+     [
+      -655.62,
+      85.36,
+      9.97,
+      755
+     ],
+     [
+      -667.26,
+      81.17,
+      10.53,
+      755
+     ],
+     [
+      -674.25,
+      76.56,
+      11.19,
+      755
+     ],
+     [
+      -678.79,
+      68.95,
+      12.32,
+      755
+     ],
+     [
+      -706.9,
+      52.88,
+      14.27,
+      755
+     ],
+     [
+      -718.91,
+      47.7,
+      15.08,
+      755
+     ],
+     [
+      -726.85,
+      50.61,
+      15.13,
+      755
+     ],
+     [
+      -721.77,
+      51.38,
+      14.89,
+      759
+     ],
+     [
+      -716.31,
+      49.68,
+      14.67,
+      759
+     ],
+     [
+      -701.54,
+      52.82,
+      14.09,
+      759
+     ],
+     [
+      -670.83,
+      35.7,
+      12.26,
+      759
+     ],
+     [
+      -662.38,
+      27.77,
+      11.85,
+      759
+     ],
+     [
+      -660.49,
+      20.79,
+      11.84,
+      759
+     ],
+     [
+      -646.73,
+      12.41,
+      11.57,
+      759
+     ],
+     [
+      -629.46,
+      -8.07,
+      10.9,
+      759
+     ],
+     [
+      -616.8,
+      -30.22,
+      10.22,
+      759
+     ],
+     [
+      -610.95,
+      -46.92,
+      9.89,
+      759
+     ],
+     [
+      -595.37,
+      -79.65,
+      10.51,
+      759
+     ],
+     [
+      -594.98,
+      -84.44,
+      10.64,
+      759
+     ],
+     [
+      -585.33,
+      -87.86,
+      10.56,
+      759
+     ],
+     [
+      -582.61,
+      -85.46,
+      10.31,
+      762
+     ],
+     [
+      -591.66,
+      -75.13,
+      10.33,
+      762
+     ],
+     [
+      -609.13,
+      -32.76,
+      9.35,
+      762
+     ],
+     [
+      -621.34,
+      -34.33,
+      10.81,
+      762
+     ],
+     [
+      -629.52,
+      -38.25,
+      11.16,
+      762
+     ],
+     [
+      -646.42,
+      -47.58,
+      12.26,
+      762
+     ],
+     [
+      -677.28,
+      -69.88,
+      14.0,
+      762
+     ],
+     [
+      -735.77,
+      -100.42,
+      18.15,
+      762
+     ],
+     [
+      -744.95,
+      -102.6,
+      18.7,
+      762
+     ],
+     [
+      -750.8,
+      -106.54,
+      19.36,
+      763
+     ],
+     [
+      -757.67,
+      -104.8,
+      19.79,
+      763
+     ],
+     [
+      -768.62,
+      -106.51,
+      20.76,
+      763
+     ],
+     [
+      -822.34,
+      -124.28,
+      25.21,
+      763
+     ],
+     [
+      -828.59,
+      -130.84,
+      25.92,
+      763
+     ],
+     [
+      -840.18,
+      -135.31,
+      27.29,
+      763
+     ],
+     [
+      -866.8,
+      -161.76,
+      30.27,
+      763
+     ],
+     [
+      -936.46,
+      -195.42,
+      29.91,
+      763
+     ],
+     [
+      -963.23,
+      -209.69,
+      29.82,
+      764
+     ],
+     [
+      -969.5,
+      -220.93,
+      29.81,
+      764
+     ],
+     [
+      -999.0,
+      -246.49,
+      30.11,
+      764
+     ]
+    ]
+   }
+  ]
+ },
+ "cores": [
+  {
+   "number": 10,
+   "name": "Swift Run",
+   "sol": 490,
+   "feature": "Skinner Ridge",
+   "sampleType": "Rock Core",
+   "dateSealed": "July 7, 2022",
+   "rockType": "Sedimentary",
+   "height": "6.69 cm (2.63 in)",
+   "location": "Perseverance Rover",
+   "positionBasis": "rover waypoint at sol 477",
+   "lengthCm": 6.69,
+   "waypointSol": 477,
+   "position": {
+    "x": 892.09,
+    "z": 788.63,
+    "y": -68.84,
+    "elevationM": -2520.92,
+    "slopeDeg": 20.1,
+    "lon": 77.40616768,
+    "lat": 18.45889532
+   },
+   "positionApproximate": true,
+   "locationRetrieved": "2026-09-29",
+   "station": "S5"
+  },
+  {
+   "number": 11,
+   "name": "Skyland",
+   "sol": 495,
+   "feature": "Skinner Ridge",
+   "sampleType": "Rock Core",
+   "dateSealed": "July 12, 2022",
+   "rockType": "Sedimentary",
+   "height": "5.85 cm (2.30 in)",
+   "location": "Sample Depot",
+   "positionBasis": "rover waypoint at sol 477",
+   "lengthCm": 5.85,
+   "waypointSol": 477,
+   "position": {
+    "x": 892.09,
+    "z": 788.63,
+    "y": -68.84,
+    "elevationM": -2520.92,
+    "slopeDeg": 20.1,
+    "lon": 77.40616768,
+    "lat": 18.45889532
+   },
+   "positionApproximate": true,
+   "locationRetrieved": "2026-09-29",
+   "station": "S5"
+  },
+  {
+   "number": 12,
+   "name": "Hazeltop",
+   "sol": 509,
+   "feature": "Wildcat Ridge",
+   "sampleType": "Rock Core",
+   "dateSealed": "July 27, 2022",
+   "rockType": "Sedimentary",
+   "height": "5.97 cm (2.35 in)",
+   "location": "Perseverance Rover",
+   "positionBasis": "rover waypoint at sol 502",
+   "lengthCm": 5.97,
+   "waypointSol": 502,
+   "position": {
+    "x": 878.45,
+    "z": 803.33,
+    "y": -71.1,
+    "elevationM": -2523.18,
+    "slopeDeg": 8.0,
+    "lon": 77.40592495,
+    "lat": 18.45864728
+   },
+   "positionApproximate": true,
+   "locationRetrieved": "2026-09-29",
+   "station": "S5"
+  },
+  {
+   "number": 13,
+   "name": "Bearwallow",
+   "sol": 516,
+   "feature": "Wildcat Ridge",
+   "sampleType": "Rock Core",
+   "dateSealed": "Aug. 3, 2022",
+   "rockType": "Sedimentary",
+   "height": "6.24 cm (2.46 in)",
+   "location": "Sample Depot",
+   "positionBasis": "rover waypoint at sol 502",
+   "lengthCm": 6.24,
+   "waypointSol": 502,
+   "position": {
+    "x": 878.45,
+    "z": 803.33,
+    "y": -71.1,
+    "elevationM": -2523.18,
+    "slopeDeg": 8.0,
+    "lon": 77.40592495,
+    "lat": 18.45864728
+   },
+   "positionApproximate": true,
+   "locationRetrieved": "2026-09-29",
+   "station": "S5"
+  },
+  {
+   "number": 19,
+   "name": "Melyn",
+   "sol": 749,
+   "feature": "Berea",
+   "sampleType": "Rock Core",
+   "dateSealed": "March 30, 2023",
+   "rockType": "Sedimentary",
+   "height": "6.04 cm (2.38 in)",
+   "location": "Perseverance Rover",
+   "positionBasis": "rover waypoint at sol 736",
+   "lengthCm": 6.04,
+   "waypointSol": 736,
+   "position": {
+    "x": -354.87,
+    "z": 117.86,
+    "y": 3.03,
+    "elevationM": -2449.05,
+    "slopeDeg": 3.0,
+    "lon": 77.38398783,
+    "lat": 18.4702116
+   },
+   "positionApproximate": true,
+   "locationRetrieved": "2026-09-29",
+   "station": "S4"
+  }
+ ],
+ "coresNote": "Copied from data/activities.json (NASA Science, Mars Rock Samples, retrieved 2026-09-29). Positions are approximate: the rover's waypoint at the sol named in positionBasis.",
+ "igneous": {
+  "rule": "Entries of data/activities.json whose rockType is exactly \"Igneous\".",
+  "numbers": [
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "names": [
+   "Montdenier",
+   "Montagnac",
+   "Salette",
+   "Coulettes",
+   "Robine",
+   "Malay",
+   "Ha'ahóni _(aka Hahonih)_",
+   "Atsá _(aka Atsah)_"
+  ],
+  "features": [
+   "Brac",
+   "Issole",
+   "Rochette",
+   "Sid"
+  ],
+  "n_igneous": 8,
+  "ig_min": 194,
+  "ig_max": 377,
+  "farthestFromLandingKm": 0.9,
+  "landingBasis": "first rover waypoint in data/stops/m20.json",
+  "notCounted": [
+   {
+    "number": 17,
+    "rockType": "Likely mixed sedimentary and igneous grains"
+   },
+   {
+    "number": 18,
+    "rockType": "Likely mixed sedimentary and igneous grains"
+   },
+   {
+    "number": 28,
+    "rockType": "Igneous/impactite"
+   },
+   {
+    "number": 29,
+    "rockType": "Igneous/impactite"
+   },
+   {
+    "number": 30,
+    "rockType": "Igneous or sedimentary"
+   }
+  ]
+ },
+ "panoramas": [
+  {
+   "id": "26_1004",
+   "file": "data/pano/m20/26_1004.jpg",
+   "widthPx": 4096,
+   "sol": 477,
+   "feature": "Skinner Ridge",
+   "roverYawDeg": 8.4,
+   "coveredFraction": 0.496,
+   "position": {
+    "x": 892.11,
+    "z": 788.65,
+    "y": -68.85,
+    "elevationM": -2520.93,
+    "slopeDeg": 20.1,
+    "lon": 77.406168,
+    "lat": 18.458895
+   },
+   "positionBasis": "rover waypoint site 26 drive 1004 (data/stops/m20.json)",
+   "samples": [
+    10,
+    11
+   ],
+   "credit": "NASA/JPL-Caltech, Mars 2020 Navcam, stitched by the team"
+  },
+  {
+   "id": "26_1222",
+   "file": "data/pano/m20/26_1222.jpg",
+   "widthPx": 4096,
+   "sol": 502,
+   "feature": "Wildcat Ridge",
+   "roverYawDeg": -107.8,
+   "coveredFraction": 0.572,
+   "position": {
+    "x": 878.45,
+    "z": 803.35,
+    "y": -71.1,
+    "elevationM": -2523.18,
+    "slopeDeg": 8.0,
+    "lon": 77.405925,
+    "lat": 18.458647
+   },
+   "positionBasis": "rover waypoint site 26 drive 1222 (data/stops/m20.json)",
+   "samples": [
+    12,
+    13
+   ],
+   "credit": "NASA/JPL-Caltech, Mars 2020 Navcam, stitched by the team"
+  }
+ ],
+ "computed": {
+  "sol_min": 443,
+  "sol_max": 764,
+  "direct_max_slope": 19.5,
+  "n_igneous": 8,
+  "ig_min": 194,
+  "ig_max": 377,
+  "route_km": null,
+  "extra_min": null,
+  "station_count": null
+ },
+ "computedNote": "Values for the {placeholders} in card texts. null = depends on the route, filled by B2 at runtime.",
+ "facts": {
+  "F1": {
+   "text": "Perseverance landed in Jezero crater on 18 Feb 2021 (Octavia E. Butler Landing site).",
+   "source": "Team Protikriti data-sources.md"
+  },
+  "F2": {
+   "text": "The delta is a massive fan-shaped collection of rocks and sediment on the crater's western edge, built where a river met a crater lake billions of years ago; it rises about 40 m (130 ft) above the crater floor.",
+   "source": "JPL news, 19 Apr 2022"
+  },
+  "F3": {
+   "text": "Scientists think fine-grained sediment at the delta's base was once mud on the bottom of Lake Jezero; higher up are sand and rock fragments carried from upstream. JPL calls it one of the best places on Mars to look for signs of ancient microbial life.",
+   "source": "JPL news, 19 Apr 2022"
+  },
+  "F4": {
+   "text": "Crater-floor rocks are igneous: Séítah is coarsely crystalline, olivine-rich rock formed at the base of a magma body; Máaz is lava flows or the chemical counterpart. Water altered them. Cores are stored aboard Perseverance for potential return to Earth.",
+   "source": "Farley et al. 2022, Science 377, eabo2196"
+  },
+  "F5": {
+   "text": "At the delta front the team found sandstones, siltstones and boulder-rich conglomerates, interpreted as deposited underwater by density currents in a distal deltaic setting; boulder-rich conglomerates are consistent with high-energy floods.",
+   "source": "Williams et al., LPSC 2023 abstract (NTRS 20230000588)"
+  },
+  "F6": {
+   "text": "One sol = 24 h 39 min 35 s (NASA says about 24.6 h).",
+   "source": "NASA GISS Mars24 / NASA Science"
+  },
+  "F7": {
+   "text": "EVA precedent: NASA's Artemis EVA concept of operations (EVA-EXP-0075, 2020): EVAs of up to 8 h, up to 2 km from the lander, terrain up to 20 degrees (Moon). Our 8 h EVA, 1 h reserve, 15 degree slope limit, 3.3 km/h pace and 20 min per stop are ASSUMPTIONS.",
+   "source": "NASA EVA-EXP-0075 (Artemis EVA concept of operations summary, Feb 2020)"
+  },
+  "F8": {
+   "text": "Astronauts can make connections, solve problems quickly and apply context in real time.",
+   "source": "Space Apps challenge text"
+  },
+  "F9": {
+   "text": "Photo: MRO HiRISE, 25 cm per pixel. Terrain: USGS HiRISE stereo model, 1 m (shown at 2 m).",
+   "source": "MRO HiRISE; USGS HiRISE terrain model"
+  }
+ },
+ "cards": {
+  "S1": {
+   "title": "Briefing",
+   "text": "Today's Marswalk: Jezero crater delta. Perseverance landed here on 18 February 2021. The delta is a fan of rock and sediment built where a river met a crater lake billions of years ago. Plan: {route_km} km, {station_count} stops, back before the clock runs out.",
+   "placeholders": [
+    "route_km",
+    "station_count"
+   ],
+   "words": 44,
+   "sourceRefs": [
+    "F1",
+    "F2"
+   ],
+   "source": "Sources: Team Protikriti data-sources.md; JPL news, 19 Apr 2022"
+  },
+  "S2": {
+   "title": "Read the ground",
+   "text": "Slope matters. We assume suited explorers avoid ground steeper than 15 degrees (ASSUMPTION; NASA's Artemis plan cites up to 20 degrees for the Moon). Turn on the slope layer: amber 10-15, red above 15. The straight line reaches {direct_max_slope} degrees; the planned route stays under 15 and takes {extra_min} more minutes.",
+   "placeholders": [
+    "direct_max_slope",
+    "extra_min"
+   ],
+   "words": 51,
+   "sourceRefs": [
+    "F7",
+    "F9"
+   ],
+   "source": "Sources: NASA EVA-EXP-0075 (Artemis EVA concept of operations summary, Feb 2020); MRO HiRISE; USGS HiRISE terrain model"
+  },
+  "S3": {
+   "title": "Follow the rover",
+   "text": "The orange line is Perseverance's real path. Inside this patch it drove between sols {sol_min} and {sol_max} (a sol is a Mars day, 24 h 39 min). Rovers scout; people can look, decide and adapt on the spot: astronauts solve problems quickly and apply context in real time.",
+   "placeholders": [
+    "sol_max",
+    "sol_min"
+   ],
+   "words": 48,
+   "sourceRefs": [
+    "F6",
+    "F8"
+   ],
+   "source": "Sources: NASA/JPL MMGIS traverse; NASA GISS Mars24 / NASA Science; Space Apps challenge text"
+  },
+  "S4": {
+   "title": "Berea: first core",
+   "text": "Berea. Sample #19, Melyn, sealed on sol 749 (30 March 2023). NASA classes it a sedimentary rock core, 6.04 cm (2.38 in) long. NASA's list showed it aboard the rover (retrieved 2026-09-29). Position is approximate (rover waypoint, sol 736). Coring here is simulated.",
+   "placeholders": [],
+   "words": 43,
+   "sourceRefs": [],
+   "source": "Source: NASA Science, Mars Rock Samples"
+  },
+  "S5A": {
+   "title": "Ridge lookout",
+   "text": "Four cores were sealed here in 2022: Swift Run (sol 490, 6.69 cm), Skyland (495, 5.85 cm), Hazeltop (509, 5.97 cm), Bearwallow (516, 6.24 cm). NASA classes all four sedimentary. At the delta front the team found sandstones, siltstones and boulder-rich conglomerates laid down underwater.",
+   "placeholders": [],
+   "words": 45,
+   "sourceRefs": [
+    "F5"
+   ],
+   "source": "Sources: NASA Science, Mars Rock Samples; Williams et al., LPSC 2023 abstract (NTRS 20230000588)",
+   "coreLocations": [
+    {
+     "number": 10,
+     "name": "Swift Run",
+     "location": "Perseverance Rover",
+     "label": "Swift Run: on rover"
+    },
+    {
+     "number": 11,
+     "name": "Skyland",
+     "location": "Sample Depot",
+     "label": "Skyland: sample depot"
+    },
+    {
+     "number": 12,
+     "name": "Hazeltop",
+     "location": "Perseverance Rover",
+     "label": "Hazeltop: on rover"
+    },
+    {
+     "number": 13,
+     "name": "Bearwallow",
+     "location": "Sample Depot",
+     "label": "Bearwallow: sample depot"
+    }
+   ],
+   "coreLocationsNote": "Where each tube is now, from NASA's list (retrieved 2026-09-29)"
+  },
+  "S5B": {
+   "title": "Igneous vs sedimentary",
+   "columns": [
+    {
+     "heading": "Igneous (crater floor)",
+     "text": "Cooled from magma or lava. Séítah is olivine-rich; Máaz is lava flows or related. Near the landing area NASA classes {n_igneous} cores as igneous (sols {ig_min} to {ig_max}).",
+     "words": 28
+    },
+    {
+     "heading": "Sedimentary (delta)",
+     "text": "Laid down by water: sandstones, siltstones, conglomerates.",
+     "words": 7
+    }
+   ],
+   "placeholders": [
+    "ig_max",
+    "ig_min",
+    "n_igneous"
+   ],
+   "words": 35,
+   "sourceRefs": [
+    "F3",
+    "F4",
+    "F5"
+   ],
+   "source": "Sources: NASA Science, Mars Rock Samples (core counts); Farley et al. 2022, Science 377, eabo2196; Williams et al., LPSC 2023 abstract (NTRS 20230000588); JPL news, 19 Apr 2022"
+  }
+ },
+ "fieldCheck": {
+  "note": "Wrong choices are plain distractors (the other rock classes, or clearly different settings); they are not claims about Jezero. A wrong answer shows the right one plus its source; no penalty.",
+  "questions": [
+   {
+    "id": "Q1",
+    "question": "Which kind of rock did Perseverance sample on Jezero's crater floor?",
+    "choices": [
+     "Sedimentary",
+     "Igneous",
+     "Metamorphic"
+    ],
+    "answer": 1,
+    "sourceRefs": [
+     "F4"
+    ],
+    "source": "Source: Farley et al. 2022, Science 377, eabo2196",
+    "rightAnswer": "Igneous"
+   },
+   {
+    "id": "Q2",
+    "question": "Which kind did it sample at the delta?",
+    "choices": [
+     "Igneous",
+     "Metamorphic",
+     "Sedimentary"
+    ],
+    "answer": 2,
+    "sourceRefs": [
+     "F5"
+    ],
+    "source": "Sources: NASA Science, Mars Rock Samples; Williams et al., LPSC 2023 abstract (NTRS 20230000588)",
+    "rightAnswer": "Sedimentary"
+   },
+   {
+    "id": "Q3",
+    "question": "What does the delta suggest once existed here?",
+    "choices": [
+     "A river flowing into a lake",
+     "A sheet of ice",
+     "A field of sand dunes"
+    ],
+    "answer": 0,
+    "sourceRefs": [
+     "F2"
+    ],
+    "source": "Source: JPL news, 19 Apr 2022",
+    "rightAnswer": "A river flowing into a lake"
+   },
+   {
+    "id": "Q4",
+    "question": "Where do scientists most hope to find signs of ancient microbial life?",
+    "choices": [
+     "Dust blowing in the air",
+     "Fine-grained sediment at the delta's base",
+     "Loose boulders on the surface"
+    ],
+    "answer": 1,
+    "sourceRefs": [
+     "F3"
+    ],
+    "source": "Source: JPL news, 19 Apr 2022",
+    "rightAnswer": "Fine-grained sediment at the delta's base"
+   }
+  ]
+ },
+ "layers": [
+  {
+   "id": "photo",
+   "name": "Photo",
+   "mission": "Mars Reconnaissance Orbiter (MRO)",
+   "instrument": "HiRISE",
+   "source": "MRO HiRISE orthomosaic, 25 cm per pixel",
+   "note": ""
+  },
+  {
+   "id": "slope",
+   "name": "Terrain and slope hazard",
+   "mission": "Mars Reconnaissance Orbiter (MRO)",
+   "instrument": "HiRISE stereo",
+   "source": "USGS HiRISE terrain model, 1 m (shown at 2 m)",
+   "note": "Slope derived by us; the 15 degree limit is an ASSUMPTION"
+  },
+  {
+   "id": "traverse",
+   "name": "Rover traverse",
+   "mission": "Mars 2020 Perseverance",
+   "instrument": "Rover localization",
+   "source": "NASA/JPL MMGIS",
+   "note": ""
+  },
+  {
+   "id": "samples",
+   "name": "Sample sites",
+   "mission": "Mars 2020 Perseverance",
+   "instrument": "Sampling and caching system",
+   "source": "NASA Mars Rock Samples",
+   "note": "Positions approximate (rover waypoint at that sol)"
+  },
+  {
+   "id": "panoramas",
+   "name": "Surface panoramas",
+   "mission": "Mars 2020 Perseverance",
+   "instrument": "Navcam",
+   "source": "Mars 2020 Navcam",
+   "note": ""
+  },
+  {
+   "id": "backdrop",
+   "name": "Backdrop terrain",
+   "mission": "Mars Reconnaissance Orbiter (MRO)",
+   "instrument": "CTX",
+   "source": "MRO CTX, 20 m",
+   "note": ""
+  }
+ ],
+ "missionsCovered": [
+  "MRO",
+  "Mars 2020 Perseverance"
+ ],
+ "telemetryNote": "Suit oxygen, battery and temperature are cosmetic and tagged SIM.",
+ "briefChecks": [
+  "sample 19 is Melyn at Berea",
+  "sample 19 sealed on sol 749, March 30, 2023",
+  "sample 19 is 6.04 cm (2.38 in)",
+  "sample 19 is a sedimentary rock core",
+  "sample 19 listed aboard the rover",
+  "sample 19 positioned at the rover waypoint of sol 736",
+  "sample 10 is Swift Run, sol 490, 6.69 cm, sedimentary, sealed in 2022",
+  "sample 11 is Skyland, sol 495, 5.85 cm, sedimentary, sealed in 2022",
+  "sample 12 is Hazeltop, sol 509, 5.97 cm, sedimentary, sealed in 2022",
+  "sample 13 is Bearwallow, sol 516, 6.24 cm, sedimentary, sealed in 2022",
+  "panoramas 26_1004 (sol 477, Skinner Ridge) and 26_1222 (sol 502, Wildcat Ridge)",
+  "the two ridge stops are about 20 m apart (computed 20.1 m)",
+  "the ridge is about 1.4 km from Berea (computed 1413 m)"
+ ]
+}

@@ -309,3 +309,66 @@ Not verified:
   marker and did not move. One aim screenshot was looked at.
 - The emulated VR test was rerun on jezero_delta afterwards: 55 of 55 passed. Not rerun on jezero.
 - Still not tested on a real headset.
+
+## Mission B1: mission data file
+
+What was done:
+
+- New tool `tools/build_mission.py` writes `data/mission/jezero_delta.json` from the team's brief
+  (`docs/mission-brief.md`) and the data files. Run it with
+  `uv run --python 3.12 --with numpy tools/build_mission.py` (needs numpy). Two runs give the same
+  bytes. The viewer itself was not changed and does not read the file yet.
+- The file holds the start spot, the five stations, the straight-line slope check, the rover path
+  clipped to the patch, the five cores, the card texts with their `{placeholders}` and one-line
+  sources, the four Field Check questions, the six assumptions and the layer credits.
+
+Measured numbers (local metres, x east, z south):
+
+| Station | x | z | Height (m) | Slope (deg) | From start (m) |
+|---|---|---|---|---|---|
+| START and S1 Briefing | 227.0 | -95.0 | -2460.4 | 0.9 | 0 |
+| S2 Read the ground (provisional) | 168.8 | -73.7 | -2456.9 | 9.8 | 62.0 |
+| S3 Follow the rover (provisional) | 213.5 | -187.9 | -2475.0 | 6.5 | 93.9 |
+| S4 Berea: first core (approximate) | -354.9 | 117.9 | -2449.1 | 3.0 | 619.6 |
+| S5 Ridge lookout (approximate) | 885.3 | 796.0 | -2522.5 | 9.1 | 1107.8 |
+
+- Start spot: the flattest 30 m square within 300 m of the patch centre with no ground above
+  15 degrees (average slope 1.0 degrees, 246 m from the centre).
+- Straight lines: start to Berea 620 m, reaches 19.5 degrees; Berea to ridge 1413 m, 29.4 degrees;
+  ridge to start 1108 m, 32.3 degrees. The first one is the S2 example, so `{direct_max_slope}` is 19.5.
+- Rover path inside the patch: 4016 m in 3 pieces; `{sol_min}` 443, `{sol_max}` 764. The sols come
+  from the rover waypoint list, because the path file has none.
+- Igneous cores near the landing area: 8, sols 194 to 377.
+- The two ridge panoramas are 20.1 m apart and 1413 m from Berea, as the brief says.
+- `{route_km}`, `{extra_min}` and `{station_count}` are in the file but empty; step B2 fills them.
+
+Review (a second, independent pass):
+
+- Found and fixed: a 17 m piece of the rover path that only cuts the south-east corner was missing.
+- Changed: `{sol_max}` was 763 (last waypoint inside the patch); it is now 764, because the rover
+  was still driving inside the patch on the sol-764 drive that leaves it.
+- An independent script recomputed everything from the raw files with its own code (start spot by
+  brute force, positions on the sphere instead of the tool's linear map, slopes, sols, path length,
+  card texts compared word for word with the brief): 71 checks pass.
+- In headless Chromium on desktop: the file loads over HTTP, the player can be placed on every
+  station and stands at the height in the file (within 6 mm), no console errors, 149,006 triangles
+  (unchanged). The builder's test and the older emulated-VR test (55 of 55) also pass.
+- The two outside sources were opened on 2026-11-15: NASA's Mars Rock Samples page matches the five
+  cores, and the NASA EVA document has the "8 hours, 2 kilometers, 20 degree" sentence on slide 34.
+  Details are in DECISIONS.md.
+
+Not verified:
+
+- Nothing ran on a real Quest 3S. B1 draws nothing new, so there was nothing new to see in VR and
+  the screenshots show only the plain terrain.
+- Only the five mission cores were compared with NASA's page, not the other 25.
+
+Known problems:
+
+- S2 and S3 positions are placeholders until B2 plans the route (marked `"provisional": true`).
+- Steep ground starts 3 m from the S5 point on the way back to the start; B2 must route from a
+  walkable cell.
+- The NASA EVA document assumes about 2 km/h walking; our 3.3 km/h cap is the brief's ASSUMPTION.
+- The wrong answers of the Field Check and the written-out Tobler formula are our wording, not
+  from the brief (listed in DECISIONS.md for the team to veto).
+- Which way the panorama images face (north column) is not recorded yet; B7 needs it.
