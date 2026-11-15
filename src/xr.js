@@ -343,6 +343,38 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
     placeFrameMeter();
   });
 
+  // Desktop teleport, so the same arc and landing code can be tried without a
+  // headset: hold T (or the right mouse button) to aim where you look, release to jump.
+  const desktopAimer = new THREE.Object3D();
+  desktopAimer.name = 'desktop-aimer';
+  desktopAimer.position.set(0.2, -0.3, 0); // below and right of the eye, so the arc is visible
+  camera.add(desktopAimer);
+  function desktopAimStart() {
+    if (state.presenting) return;
+    aim.controller = desktopAimer;
+  }
+  function desktopAimEnd() {
+    if (aim.controller !== desktopAimer) return;
+    teleport(trace(desktopAimer));
+    stopAim();
+  }
+  window.addEventListener('keydown', (event) => {
+    if (event.code === 'KeyT' && !event.repeat) desktopAimStart();
+  });
+  window.addEventListener('keyup', (event) => {
+    if (event.code === 'KeyT') desktopAimEnd();
+  });
+  renderer.domElement.addEventListener('mousedown', (event) => {
+    if (event.button === 2) desktopAimStart();
+  });
+  window.addEventListener('mouseup', (event) => {
+    if (event.button === 2) desktopAimEnd();
+  });
+  renderer.domElement.addEventListener('contextmenu', (event) => event.preventDefault());
+  window.addEventListener('blur', () => {
+    if (aim.controller === desktopAimer) stopAim();
+  });
+
   // Thumbstick and button state per input source, for "one action per press".
   const sticks = new Map(); // inputSource -> armed
   const buttons = new Map(); // inputSource -> was pressed
@@ -372,9 +404,10 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
 
   // Call once per frame, before rendering.
   function update() {
-    if (!state.presenting) return;
-    pollGamepads();
-    player.followGround();
+    if (state.presenting) {
+      pollGamepads();
+      player.followGround();
+    }
     if (aim.controller) drawAim(trace(aim.controller));
   }
 

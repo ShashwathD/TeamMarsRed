@@ -298,3 +298,14 @@ Not verified:
 - The emulated VR test was rerun on jezero_delta after these changes: 55 of 55 checks passed.
   It was not rerun on jezero.
 - Still open: everything listed under steps 5 and 6 that needs a real Quest 3S.
+
+## Desktop teleport added for testing
+
+- Teleport was VR-controller only, so it could not be tried on a desktop browser. Added: hold T (or
+  the right mouse button) to aim where you look, release to jump. It uses the same arc, marker and
+  landing code as the VR trigger.
+- Tested in headless Chromium: 4 keyboard aims and 1 right-mouse aim all moved the player (2 to 37 m)
+  and landed within 6 mm of the marker at ground height; aiming off the patch showed the arc with no
+  marker and did not move. One aim screenshot was looked at.
+- The emulated VR test was rerun on jezero_delta afterwards: 55 of 55 passed. Not rerun on jezero.
+- Still not tested on a real headset.

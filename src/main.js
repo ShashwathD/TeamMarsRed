@@ -160,7 +160,7 @@ async function start() {
   });
 
   setStatus(
-    `${site}: click to look around, WASD to walk, Shift to run, Esc to release the mouse, F for frame time. ` +
+    `${site}: click to look around, WASD to walk, Shift to run, hold T (or right mouse) to aim a teleport and release to jump, Esc to release the mouse, F for frame time. ` +
       'In VR: hold trigger to aim, release to teleport; thumbstick left/right to turn' +
       (photo ? '' : ' (no photo for this patch)') +
       surroundNote,
