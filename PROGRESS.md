@@ -110,3 +110,54 @@ Not verified, or worth knowing:
 - No-data cells would be left as holes and the player cannot step onto them. This is untested because
   all three patches have no gaps.
 - The mesh spans the sample centres, so it is 1998 m wide, 1 m short of the nominal edge on each side.
+
+## Step 4
+
+Photo texture and distant terrain. Done for both `jezero` and `jezero_delta`.
+
+- Photo: `tools/stitch_mosaic.py` stitched all 182 level-16 tiles of each patch into one
+  `mosaic_16.jpg` in the patch folder, cropped by longitude/latitude to the patch bounds
+  (jezero 3315 x 3145 px, 3.9 MB; jezero_delta 3316 x 3145 px, 3.0 MB; both under 4096). The page
+  makes one photo request. The photo lines up with the terrain to within 2 m. The Mars tint is
+  cosmetic.
+- Distant terrain: the 20 m grid from `data/sites/jezero` surrounds the 2 m patch, placed by
+  longitude/latitude. It has no triangles inside the patch.
+- Height agreement where they overlap (fine minus coarse): jezero mean -1.84 m, spread 2.40 m;
+  jezero_delta mean -2.00 m, spread 3.66 m. The viewer measures the mean at load and lowers the
+  coarse grid by it. Recorded in `DECISIONS.md`.
+- Level of detail: the patch is 256 chunks, full resolution under the player and coarser further
+  away. Triangles drawn range from about 112k to 233k depending on position. Worst found by the
+  reviewer's 120 x 120 position sweep: 232,956 (jezero) and 231,482 (jezero_delta), about 52k of
+  that being distant terrain. Under the 300k limit.
+- Textures: the one photo (sizes above) plus the 256 x 256 north-marker sign.
+- Tests: 22 of 22 checks passed in headless Chromium at both sites with no console errors. Player
+  height matches the full-resolution heights to 0.0001 m after teleports.
+
+Corrected after review:
+
+- The join between patch and distant terrain is not as tight as first reported (0.10 m / 0.31 m).
+  The drawn height step at the edge is up to 0.84 m (jezero) and 2.62 m (jezero_delta). Skirts
+  hide it: no see-through pixels in 38 test views. `DECISIONS.md` now carries the reviewed numbers.
+
+Not verified, or worth knowing:
+
+- Only headless Chromium with software graphics. Frame rate was not measured; no real graphics
+  card and no headset was used.
+- Draw calls: up to 155 in view from a patch edge, and 259-260 with the whole patch in view. This
+  is the main untested frame-time risk on the Quest.
+- The photo is soft when standing on it: level 16 is about 0.6 m per pixel, and level 17 would need
+  about 6630 x 6290 px, over the 4096 limit. This will matter for the "photo is sharp" headset check.
+- The line where the photo stops is visible as a change from detailed to smooth ground. Next to the
+  patch the distant terrain also shows radial light/dark streaks and a dark diagonal crease from
+  each patch corner. Cosmetic, not fixed.
+- The coarse grid ends 3.4 km west of the delta patch centre, toward the crater rim; beyond that
+  there is only haze. This will limit the step 6 view toward the rim.
+- Possible depth flicker on far terrain (camera near 0.1 m, far 20,000 m). Calculated only, not
+  observed; to be checked in step 5 or on the headset.
+- Beyond the brief: the sun in `src/sky.js` was moved to the west and softened to match the shadows
+  in the photo, the brightest highlights are compressed, and the photo's edge brightness fades into
+  the distant terrain over 300 m. All cosmetic.
+- `?site=gale` still loads with plain terrain but logs one 404 for its missing mosaic (out of scope).
+- The two mosaics add 6.9 MB to the repository.
+- The no-data path (holes) is still untested because no patch has gaps.
+- The test script and screenshots are in a scratch folder, not the repository.
