@@ -287,3 +287,14 @@ Not verified:
 - The subpath test copy was made before the screenshots, docs/screenshots/README.md and the final
   PUBLISH.md wording existed. The page does not load those files.
 - Whether the user can push to the assumed repository or turn Pages on there.
+
+## After step 6: three small fixes
+
+- Leaving VR now restores the normal desktop view angle (70 degrees). Fixed in `src/main.js`; the
+  change is two lines and was not measured directly, only by the rerun below.
+- The teleport landing marker is easier to see: it grows faster with distance and has a 1.2 m
+  upright post, so it shows even when the ring is seen edge-on. Not looked at by eye or on a headset.
+- PUBLISH.md now gives the real button texts ("WEBXR NOT AVAILABLE", "WEBXR NEEDS HTTPS").
+- The emulated VR test was rerun on jezero_delta after these changes: 55 of 55 checks passed.
+  It was not rerun on jezero.
+- Still open: everything listed under steps 5 and 6 that needs a real Quest 3S.
