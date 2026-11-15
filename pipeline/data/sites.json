@@ -1,0 +1,174 @@
+{
+  "sites": [
+    {
+      "id": "jezero",
+      "name": "Jezero crater",
+      "rover": "Perseverance",
+      "dem": "../data/raw/jezero_ctx_dem.tif",
+      "bounds": [
+        77.33,
+        18.36,
+        77.53,
+        18.56
+      ],
+      "pixel_m": 20,
+      "source": "USGS Mars 2020 Science Investigation CTX DEM Mosaic, 20 m/px",
+      "walk": {
+        "lon": 77.4509,
+        "lat": 18.4446,
+        "km": 2,
+        "levels": [
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "dem": "/vsicurl/https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40.tif",
+        "ortho": "/vsicurl/https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first.tif",
+        "source": "USGS Mars 2020 TRN HiRISE DTM (1 m, shown at 2 m) and 25 cm orthomosaic, soc_006; centred on the Octavia E. Butler landing site"
+      },
+      "fine": {
+        "dem": "/vsicurl/https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40.tif",
+        "source": "USGS Mars 2020 TRN HiRISE DTM mosaic, 1 m (soc_006)"
+      }
+    },
+    {
+      "id": "gale",
+      "name": "Gale crater (Mount Sharp)",
+      "rover": "Curiosity",
+      "dem": "/vsicurl/https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif",
+      "bounds": [
+        137.3,
+        -4.9,
+        137.48,
+        -4.55
+      ],
+      "pixel_m": 32,
+      "source": "USGS MSL Gale Merged DEM Mosaic v3 (1 m/px), read at 32 m/px via internal overviews",
+      "walk": {
+        "lon": 137.4417,
+        "lat": -4.5895,
+        "km": 2,
+        "levels": [
+          13,
+          14,
+          15,
+          16,
+          17
+        ],
+        "dem": "/vsicurl/https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif",
+        "ortho": "/vsicurl/https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_Orthophoto_Mosaic_25cm_v3.tif",
+        "source": "USGS MSL Gale Merged DEM Mosaic v3 (1 m, shown at 2 m) and 25 cm HiRISE orthophoto mosaic v3; centred on Bradbury Landing"
+      },
+      "fine": {
+        "dem": "/vsicurl/https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif",
+        "source": "USGS MSL Gale Merged DEM Mosaic v3, 1 m"
+      }
+    },
+    {
+      "id": "insight",
+      "name": "InSight landing site (Elysium Planitia)",
+      "rover": "InSight",
+      "dem": "../data/raw/insight_ctx_dtm.tif",
+      "bounds": [
+        135.52,
+        4.4,
+        135.72,
+        4.6
+      ],
+      "pixel_m": 20,
+      "source": "USGS InSight landing-site CTX DTM (F02_036761_1828 / F04_037262_1841), 20 m/px"
+    },
+    {
+      "id": "columbia_hills",
+      "name": "Columbia Hills (Spirit)",
+      "rover": "Spirit",
+      "dem": "../HiRISE_IMages/DTEEC_001513_1655_001777_1650_U01.IMG",
+      "bounds": [
+        175.4418,
+        -14.6775,
+        175.5548,
+        -14.4926
+      ],
+      "pixel_m": 5,
+      "source": "HiRISE DTEEC_001513_1655_001777_1650_U01, MRO HiRISE, 1 m/px native, read at 5 m/px — Spirit rover, Gusev crater",
+      "zero_is_nodata": true,
+      "fine": {
+        "dem": "../HiRISE_IMages/DTEEC_001513_1655_001777_1650_U01.IMG",
+        "source": "HiRISE stereo DTM DTEEC_001513_1655_001777_1650_U01, 1 m"
+      }
+    },
+    {
+      "id": "viking2",
+      "name": "Viking 2 landing site (Utopia Planitia)",
+      "rover": "Viking 2",
+      "dem": "../HiRISE_IMages/DTEEC_002055_2280_001976_2280_A01.IMG",
+      "bounds": [
+        134.1924,
+        47.5527,
+        134.3788,
+        47.7679
+      ],
+      "pixel_m": 5,
+      "source": "HiRISE DTEEC_002055_2280_001976_2280_A01, MRO HiRISE, 1 m/px native, read at 5 m/px — Viking 2 landing site, Utopia Planitia",
+      "zero_is_nodata": true,
+      "fine": {
+        "dem": "../HiRISE_IMages/DTEEC_002055_2280_001976_2280_A01.IMG",
+        "source": "HiRISE stereo DTM DTEEC_002055_2280_001976_2280_A01, 1 m"
+      }
+    },
+    {
+      "id": "pathfinder",
+      "name": "Mars Pathfinder (Ares Vallis)",
+      "rover": "Sojourner",
+      "dem": "../HiRISE_IMages/DTEEC_002391_1995_001890_1995_A01.IMG",
+      "bounds": [
+        -33.3051,
+        18.9389,
+        -33.189,
+        19.1822
+      ],
+      "pixel_m": 5,
+      "source": "HiRISE DTEEC_002391_1995_001890_1995_A01, MRO HiRISE, 1 m/px native, read at 5 m/px — Mars Pathfinder / Sojourner, Ares Vallis",
+      "zero_is_nodata": true,
+      "fine": {
+        "dem": "../HiRISE_IMages/DTEEC_002391_1995_001890_1995_A01.IMG",
+        "source": "HiRISE stereo DTM DTEEC_002391_1995_001890_1995_A01, 1 m"
+      }
+    },
+    {
+      "id": "ius_chasma",
+      "name": "Ius Chasma (Valles Marineris)",
+      "rover": null,
+      "dem": "../HiRISE_IMages/DTEEC_001918_1735_001984_1735_U01.IMG",
+      "bounds": [
+        -76.9824,
+        -6.5616,
+        -76.8733,
+        -6.3778
+      ],
+      "pixel_m": 5,
+      "source": "HiRISE DTEEC_001918_1735_001984_1735_U01, MRO HiRISE, 1 m/px native, read at 5 m/px — Ius Chasma, western Valles Marineris",
+      "zero_is_nodata": true,
+      "fine": {
+        "dem": "../HiRISE_IMages/DTEEC_001918_1735_001984_1735_U01.IMG",
+        "source": "HiRISE stereo DTM DTEEC_001918_1735_001984_1735_U01, 1 m"
+      }
+    },
+    {
+      "id": "meridiani",
+      "name": "Meridiani Planum (Opportunity)",
+      "rover": "Opportunity",
+      "dem": "../HiRISE_IMages/megt90n000cb.img",
+      "bounds": [
+        -5.5068,
+        -2.0652,
+        -5.4849,
+        -2.0363
+      ],
+      "pixel_m": 20,
+      "source": "HiRISE DTM, MRO HiRISE, 1 m/px native, read at 20 m/px — Meridiani Planum, Opportunity rover landing site"
+    }
+  ]
+}

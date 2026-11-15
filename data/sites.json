@@ -1,0 +1,92 @@
+{
+ "sites": [
+  {
+   "id": "jezero",
+   "name": "Jezero crater",
+   "rover": "Perseverance",
+   "source": "USGS Mars 2020 Science Investigation CTX DEM Mosaic, 20 m/px",
+   "west": 77.32968749442561,
+   "south": 18.359941854989675,
+   "east": 77.52960691982891,
+   "north": 18.56002722860692,
+   "pixel_size_m": 20.0
+  },
+  {
+   "id": "gale",
+   "name": "Gale crater (Mount Sharp)",
+   "rover": "Curiosity",
+   "source": "USGS MSL Gale Merged DEM Mosaic v3 (1 m/px), read at 32 m/px via internal overviews",
+   "west": 137.29999194995602,
+   "south": -4.899984096506572,
+   "east": 137.4799844331873,
+   "north": -4.549986528120114,
+   "pixel_size_m": 32.0
+  },
+  {
+   "id": "insight",
+   "name": "InSight landing site (Elysium Planitia)",
+   "rover": "InSight",
+   "source": "USGS InSight landing-site CTX DTM (F02_036761_1828 / F04_037262_1841), 20 m/px",
+   "west": 135.51992754974992,
+   "south": 4.400178475959807,
+   "east": 135.71998221550461,
+   "north": 4.600233141714511,
+   "pixel_size_m": 20.235801707741
+  },
+  {
+   "id": "columbia_hills",
+   "name": "Columbia Hills (Spirit)",
+   "rover": "Spirit",
+   "source": "HiRISE DTEEC_001513_1655_001777_1650_U01, MRO HiRISE, 1\u202fm/px native, read at 5\u202fm/px \u2014 Spirit rover, Gusev crater",
+   "west": 175.441840421273,
+   "south": -14.677423637821267,
+   "east": 175.5547312975159,
+   "north": -14.492585327664097,
+   "pixel_size_m": 5.0527062004875
+  },
+  {
+   "id": "viking2",
+   "name": "Viking 2 landing site (Utopia Planitia)",
+   "rover": "Viking 2",
+   "source": "HiRISE DTEEC_002055_2280_001976_2280_A01, MRO HiRISE, 1\u202fm/px native, read at 5\u202fm/px \u2014 Viking 2 landing site, Utopia Planitia",
+   "west": 134.19238508449385,
+   "south": 47.55269899323278,
+   "east": 134.3787451791229,
+   "north": 47.767902928462426,
+   "pixel_size_m": 4.9954597640615
+  },
+  {
+   "id": "pathfinder",
+   "name": "Mars Pathfinder (Ares Vallis)",
+   "rover": "Sojourner",
+   "source": "HiRISE DTEEC_002391_1995_001890_1995_A01, MRO HiRISE, 1\u202fm/px native, read at 5\u202fm/px \u2014 Mars Pathfinder / Sojourner, Ares Vallis",
+   "west": -33.30505191927843,
+   "south": 18.938944643388698,
+   "east": -33.189074229673885,
+   "north": 19.18216425507386,
+   "pixel_size_m": 5.047648824804
+  },
+  {
+   "id": "ius_chasma",
+   "name": "Ius Chasma (Valles Marineris)",
+   "rover": null,
+   "source": "HiRISE DTEEC_001918_1735_001984_1735_U01, MRO HiRISE, 1\u202fm/px native, read at 5\u202fm/px \u2014 Ius Chasma, western Valles Marineris",
+   "west": -76.98240753055497,
+   "south": -6.561563673738258,
+   "east": -76.87336080548724,
+   "north": -6.377836887072899,
+   "pixel_size_m": 5.057997543388501
+  },
+  {
+   "id": "meridiani",
+   "name": "Meridiani Planum (Opportunity)",
+   "rover": "Opportunity",
+   "source": "HiRISE DTM, MRO HiRISE, 1 m/px native, read at 20 m/px \u2014 Meridiani Planum, Opportunity rover landing site",
+   "west": -5.50677703102783,
+   "south": -2.065167908531148,
+   "east": -5.484943724517424,
+   "north": -2.036301511886087,
+   "pixel_size_m": 20.237101475148
+  }
+ ]
+}

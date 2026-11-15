@@ -1,0 +1,48 @@
+[project]
+name = "marsmap"
+version = "0.1.0"
+description = "Data pipeline for the Martian Map (Jezero DEM -> web grid)"
+authors = [
+    { name = "AhsanulHoque22", email = "ahsanulhoque22701048@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "huggingface-hub>=0.30",
+    "scikit-learn>=1.5",  # terrain RF classifier
+    "scipy>=1.14",  # Poisson seam removal (DCT) and median filters; already a scikit-learn dependency
+    "numpy>=2.5.3",
+    "opencv-python-headless>=4.12",
+    "rasterio>=1.5.1",
+    "trimesh>=5.1.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.11.26,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "mypy>=2.3.1",
+    "pytest>=9.1.1",
+    "ruff>=0.16.9",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF", "NPY"]
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["rasterio.*", "affine.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# rasterio internals still use Affine `*`; not our code.
+filterwarnings = ["ignore:Use `@` matmul:PendingDeprecationWarning:rasterio"]
