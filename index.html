@@ -3,14 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TeamMarsRed WebXR</title>
+    <title>TeamMarsRed - Mars terrain walk</title>
+    <link rel="icon" href="data:," />
     <link rel="stylesheet" href="./style.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+        }
+      }
+    </script>
   </head>
   <body>
-    <main>
-      <h1>TeamMarsRed</h1>
-      <p>A tiny WebXR scene. Enter VR on a compatible headset, or look around on desktop.</p>
-    </main>
+    <div id="status">Loading...</div>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

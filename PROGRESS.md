@@ -71,3 +71,42 @@ Not verified, or worth knowing:
   source photo and will be visible when the photo is draped in step 4.
 - The slope figures come from our own check script (central differences on the 2 m grid), not from the
   pipeline's slope code.
+
+## Step 3: Desktop terrain viewer
+
+Done. The rotating-cube starter is replaced by a desktop terrain viewer (`index.html`, `style.css`,
+`src/*.js`), plain HTML and ES modules with Three.js pinned through an import map, no build step.
+
+- `?site=<folder>` picks the walk patch (default is still `jezero`; step 6 changes it). A missing site
+  shows an error message instead of crashing.
+- Frame: x east, z south, y up, origin at the patch centre. A temporary red "N" pole stands 60 m north
+  of the start.
+- Terrain at true scale, using every 3rd sample: 334 x 334 vertices, 221,778 triangles (222,788 drawn
+  including sky and marker). Plain tan surface for now; the photo comes in step 4.
+- Mars sky gradient, light haze, WASD + mouse walking at 1.7 m eye height following the ground.
+- Automated test in headless Chromium: 61 of 61 checks passed across jezero, gale and jezero_delta,
+  with no console errors, warnings or failed requests.
+  - Ground height in the viewer matches the raw dem.bin at 7 sample centres (including all four
+    corners) to 0.0001 m, and matches an independent calculation at 4 other points.
+  - The north marker is centred on screen when facing north and absent facing south, east and west.
+  - Real key presses move the player the right way, the camera stays 1.7 m above the ground, and the
+    position stops at the patch edge (+/-999 m). Mouse look turned and pitched correctly.
+- `README.md` run instructions are updated.
+
+Not verified, or worth knowing:
+
+- Tested only in headless Chromium with software graphics (about 10 frames per second there). Frame
+  rate on a real graphics card was not measured; no real desktop browser and no headset was used.
+- Only the jezero screenshots were looked at by eye. The jezero_delta and gale screenshots passed the
+  automated checks but were not viewed, and jezero_delta was still being built while the test ran, so
+  it should be retested now that step 2 is final.
+- After the last small lighting change the full test was rerun and passed, but only one screenshot
+  from that run was viewed.
+- The test script and screenshots are in a scratch folder, not in the repository. It used a copy of
+  playwright already installed elsewhere on this machine; nothing was installed.
+- Three.js loads from jsDelivr, so the page needs an internet connection.
+- Added beyond the brief: arrow-key turn/walk, Shift to run (15 m/s; walking is 3 m/s), a one-line
+  on-page instructions strip (HTML, so invisible in VR) and an empty inline favicon.
+- No-data cells would be left as holes and the player cannot step onto them. This is untested because
+  all three patches have no gaps.
+- The mesh spans the sample centres, so it is 1998 m wide, 1 m short of the nominal edge on each side.
