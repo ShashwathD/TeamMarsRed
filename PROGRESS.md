@@ -161,3 +161,66 @@ Not verified, or worth knowing:
 - The two mosaics add 6.9 MB to the repository.
 - The no-data path (holes) is still untested because no patch has gaps.
 - The test script and screenshots are in a scratch folder, not the repository.
+
+## Step 5
+
+WebXR is added to the viewer (`src/xr.js`, `src/frameMeter.js`, changes in `src/controls.js` and
+`src/main.js`). Nothing in this step has run on a real Quest 3S or any headset. All VR behaviour was
+tested only with a headset emulator (iwer 2.8.0, Quest 3 profile) in headless Chromium with
+software graphics.
+
+What was done:
+
+- VR button, local-floor reference space, desktop fallback kept. No smooth movement.
+- Teleport: hold the trigger on either controller to aim (arc + ring marker), release to jump.
+  It only lands on the walk patch and snaps to the ground height. Aiming off the patch gives a red
+  arc, no marker and no move.
+- Snap turn: 45 degrees per thumbstick push, one turn per push.
+- Frame-time readout, hidden by default: F on desktop, A/B/X/Y in VR. It shows the average and the
+  worst of the last 144 frames, and is drawn in the scene (on the camera on desktop, on the left
+  controller in VR) because HTML overlays do not show in VR.
+- The level of detail follows the head after every jump, and the floor follows the ground as the
+  user takes real steps.
+
+Measured (emulator only):
+
+- 110 of 110 automated checks passed on jezero_delta and jezero, with no console errors.
+- Head height above the floor equals the emulated headset height (1.600 m), also after a 1.1 m
+  real step inside the room.
+- 6 teleports per site (3 to 41 m): the head landed within 7 mm of a landing point computed
+  independently from dem.bin; floor height error under 0.1 mm. The reviewer repeated this with 8
+  aims: marker within 11 mm.
+- Snap turn: exactly 45.000 degrees, head moved less than 1e-13 m. A half-pushed stick does nothing.
+- Triangles after jumps: 192k to 227k, under the 300k limit.
+- Re-levelling the terrain after a far jump took 7 to 9 ms on this Mac, in the same frame.
+
+Choices not in the brief: arc speed 20 m/s (about 10 m reach aimed level, about 40 m aimed 45
+degrees up); the page asks the headset for 72 Hz when it offers a choice; controllers are drawn as
+plain white pointer sticks, not Quest models, to avoid a download from another server.
+
+Known problems found in review, NOT fixed in this commit:
+
+- Leaving VR does not restore the desktop field of view. Eye height (1.7 m) and window size come
+  back, but the view stays wide-angle (70 degrees became 90 in the emulator) until the page is
+  reloaded.
+- The landing marker is hard to see: at 9.4 m the 0.3-0.4 m ring is only a few pixels tall. It is
+  in the right place but may need to be bigger on the headset.
+- Outside this step and unconfirmed: the photo may sit 1 to 2.5 m east of the terrain on sloped
+  ground. Orientation is certainly right (no mirroring). The shift follows the sun direction in
+  both patches, so it may be cast shadows in the measurement rather than a real offset.
+
+Not verified:
+
+- Frame time on the headset. The emulated runs took about 150-170 ms per frame in software
+  graphics, which says nothing about the Quest.
+- Real floor height, readability of the readout on the left controller, arc and marker visibility
+  in stereo, flicker, whether the 72 Hz request is honoured, and the real Quest mapping for the
+  A/B/X/Y buttons (assumed from the standard layout).
+- A far teleport re-levels up to about 200 terrain chunks in one frame. On the Quest this may show
+  as a one-frame hitch; there is no fade to hide it.
+- Mouse look on desktop: headless Chromium refuses pointer lock, so only keyboard walking, strafing
+  and arrow-key turning were tested after this step's changes.
+- The first page load in a fresh headless browser logged four software-graphics performance
+  warnings ("GPU stall due to ReadPixels"). They look like test-browser noise; there were no errors.
+- The test script, the emulator install and the screenshots are in a scratch folder, not the
+  repository. The shipped page does not reference the emulator.

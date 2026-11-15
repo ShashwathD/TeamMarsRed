@@ -6,6 +6,8 @@ import { createWalkMaterial, createSurroundMaterial } from './materials.js';
 import { createSky } from './sky.js';
 import { createPlayer, EYE_HEIGHT_M } from './controls.js';
 import { createNorthMarker } from './northMarker.js';
+import { createFrameMeter } from './frameMeter.js';
+import { createXR } from './xr.js';
 
 const DEFAULT_SITE = 'jezero';
 
@@ -117,28 +119,45 @@ async function start() {
   const northMarker = createNorthMarker(patch, player.position.x, player.position.z);
   scene.add(northMarker);
 
-  window.addEventListener('resize', () => {
+  // Frame-time readout, drawn in the scene so it also shows in VR.
+  // F on desktop, A/B/X/Y on a controller; ?frametime=1 starts with it on.
+  const frameMeter = createFrameMeter();
+  const xr = createXR({ renderer, scene, camera, player, patch, frameMeter });
+  if (new URLSearchParams(window.location.search).get('frametime') === '1') frameMeter.setVisible(true);
+  window.addEventListener('keydown', (event) => {
+    if (event.code === 'KeyF' && !event.repeat) frameMeter.toggle();
+  });
+
+  const resize = () => {
+    if (renderer.xr.isPresenting) return; // the headset sets the size in VR
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+    xr.placeFrameMeter();
+  };
+  window.addEventListener('resize', resize);
+  renderer.xr.addEventListener('sessionend', resize);
 
   const clock = new THREE.Clock();
   const viewer = new THREE.Vector3();
   let frames = 0;
   terrain.update(player.position.x, player.position.z);
   renderer.setAnimationLoop(() => {
+    frameMeter.tick(performance.now());
     const dt = Math.min(clock.getDelta(), 0.1);
-    player.update(dt);
-    // Level of detail follows the head (in VR the head can be away from the rig origin).
-    camera.getWorldPosition(viewer);
+    player.update(dt); // keyboard and mouse; does nothing in VR
+    xr.update(); // teleport, snap turn; does nothing on desktop
+    // Level of detail follows the head, wherever the rig was just moved to
+    // (in VR the head can be away from the rig origin).
+    player.headPosition(viewer);
     terrain.update(viewer.x, viewer.z);
     renderer.render(scene, camera);
     frames++;
   });
 
   setStatus(
-    `${site}: click to look around, WASD to walk, Shift to run, Esc to release the mouse` +
+    `${site}: click to look around, WASD to walk, Shift to run, Esc to release the mouse, F for frame time. ` +
+      'In VR: hold trigger to aim, release to teleport; thumbstick left/right to turn' +
       (photo ? '' : ' (no photo for this patch)') +
       surroundNote,
   );
@@ -157,6 +176,9 @@ async function start() {
     surround,
     photo: photo ? { url: photo.url, width: photo.width, height: photo.height, meanLinear: photo.meanLinear } : null,
     northMarker,
+    xr,
+    frameMeter,
+    playerRig: player,
     eyeHeightM: EYE_HEIGHT_M,
     get frames() {
       return frames;
