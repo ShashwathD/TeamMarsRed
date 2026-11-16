@@ -269,9 +269,7 @@ Known problems, NOT fixed in this commit:
 - PUBLISH.md assumes the repository https://github.com/ShashwathD/TeamMarsRed. An anonymous
   request to it returned 404, so it is private or absent. Pages on a free account needs a public
   repository; PUBLISH.md says so in prose and gives a fallback, but has no numbered step for it.
-- CREDITS.md credits an "open source Team Protikriti project". Nothing else in the repository
-  mentions that name and there is no licence file, so the claim is unverified. CREDITS.md asks the
-  team to add the licence and link. Its statement that ?site=gale loads was not tested.
+- CREDITS.md: its statement that ?site=gale loads was not tested.
 - The published site carries about 80 MB the viewer never requests (2,825 photo tile files, plus
   pipeline/ and web/). Within GitHub limits; left in place.
 - Carried over from step 5: wide-angle view after leaving VR, small teleport ring, possible
@@ -734,7 +732,7 @@ Done:
 
 Known problems:
 
-- Team Protikriti's licence and repository link are missing; there are no addresses for fact
+- There are no addresses for fact
   sources F2 to F6 because the repository has none.
 - `PUBLISH.md` Part 4 was written from the brief before the code was merged; only the
   `skipcabin` note and the branch name were corrected at the merge.

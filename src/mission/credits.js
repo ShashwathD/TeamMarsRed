@@ -27,7 +27,7 @@ export const FIXED = {
     { head: 'Mission code', text: 'Written for this project. The cabin, tablet, HUD, beacons, sample tubes and every other object are built in code; no 3D model, texture, font or sound file from anyone else is loaded.' },
     {
       head: 'Data files and pipeline',
-      text: "The terrain, photo, rover path, sample list and panorama files were made with the Team Protikriti project's pipeline. Its licence has not been verified.",
+      text: "The terrain, photo, rover path, sample list and panorama files were made with this project's data pipeline (pipeline/) from the public sources listed here.",
     },
   ],
   notReal: [

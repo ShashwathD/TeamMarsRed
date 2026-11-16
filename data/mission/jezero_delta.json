@@ -7913,7 +7913,7 @@
     10,
     11
    ],
-   "credit": "NASA/JPL-Caltech, Mars 2020 Navcam raw images, stitched with Team Protikriti's pipeline (docs/data-sources.md)"
+   "credit": "NASA/JPL-Caltech, Mars 2020 Navcam raw images, stitched with the project's pipeline (docs/data-sources.md)"
   },
   {
    "id": "26_1222",
@@ -7937,7 +7937,7 @@
     12,
     13
    ],
-   "credit": "NASA/JPL-Caltech, Mars 2020 Navcam raw images, stitched with Team Protikriti's pipeline (docs/data-sources.md)"
+   "credit": "NASA/JPL-Caltech, Mars 2020 Navcam raw images, stitched with the project's pipeline (docs/data-sources.md)"
   }
  ],
  "computed": {
@@ -7955,7 +7955,7 @@
  "facts": {
   "F1": {
    "text": "Perseverance landed in Jezero crater on 18 Feb 2021 (Octavia E. Butler Landing site).",
-   "source": "Team Protikriti data-sources.md"
+   "source": "docs/data-sources.md"
   },
   "F2": {
    "text": "The delta is a massive fan-shaped collection of rocks and sediment on the crater's western edge, built where a river met a crater lake billions of years ago; it rises about 40 m (130 ft) above the crater floor.",
@@ -8003,7 +8003,7 @@
     "F1",
     "F2"
    ],
-   "source": "Sources: Team Protikriti data-sources.md; JPL news, 19 Apr 2022"
+   "source": "Sources: docs/data-sources.md; JPL news, 19 Apr 2022"
   },
   "S2": {
    "title": "Read the ground",
