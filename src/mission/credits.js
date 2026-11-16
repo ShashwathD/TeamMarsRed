@@ -100,8 +100,8 @@ export function buildCredits(data) {
 // ---- layout -------------------------------------------------------------------
 //
 // Rows are laid out once per (credits, box) and cached, so paging costs one
-// canvas draw and no measuring. A page never starts with an orphaned heading
-// and a credit's first text line stays with its head.
+// canvas draw and no measuring. A page never starts with an orphaned heading,
+// and a credit is not split across pages unless it is taller than a page.
 
 const HEAD_GAP = 0.3; // of a line height, above a credit
 const SECTION_GAP = 0.45; // of a line height, above a section title
@@ -125,9 +125,12 @@ export function layoutCredits(ctx, credits, { width, height, px = 42, lineHeight
       pending = [];
       if (line.head) rows.push({ kind: 'head', text: line.head, h: lineHeight * (1 + HEAD_GAP) });
       rows.push({ kind: 'text', text: wrapped[0], h: line.head ? lineHeight : lineHeight * (1 + HEAD_GAP) });
+      // A credit stays whole on one page, so no sentence is cut by a page
+      // turn. Only one that is taller than the box by itself may run on.
+      const whole = rows.reduce((sum, row) => sum + row.h, 0) + (wrapped.length - 1) * lineHeight <= height;
+      if (whole) for (let i = 1; i < wrapped.length; i++) rows.push({ kind: 'text', text: wrapped[i], h: lineHeight });
       blocks.push({ rows, section: section.title });
-      // Later lines of a long credit may run on to the next page.
-      for (let i = 1; i < wrapped.length; i++) blocks.push({ rows: [{ kind: 'text', text: wrapped[i], h: lineHeight }], section: section.title });
+      if (!whole) for (let i = 1; i < wrapped.length; i++) blocks.push({ rows: [{ kind: 'text', text: wrapped[i], h: lineHeight }], section: section.title });
     }
   }
   const pages = [];
