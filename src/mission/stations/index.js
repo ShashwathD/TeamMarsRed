@@ -54,8 +54,9 @@ import { createSampleTube } from './tube.js';
 // A station becomes ACTIVE when the explorer is within its radius of the
 // beacon, however they got there (walking, teleport arc or a map teleport),
 // and stops being active a few metres beyond it. Stations can be done in any
-// order and none blocks another: the HUD's NEXT simply moves on to the first
-// stop not yet done after the one just finished.
+// order and none blocks another: the HUD's NEXT moves on to the first stop not
+// yet done after the one just finished, then to any stop skipped earlier, and
+// to the airlock when all are done.
 //
 // The station card is a hologram panel: in VR it stands up from the top edge
 // of the forearm tablet; on desktop it sits at the right of the view (and
@@ -411,6 +412,7 @@ export async function createStations({ mission, scene, camera, renderer, player 
 
   function nextAfter(index) {
     for (let i = index + 1; i < entries.length; i++) if (!entries[i].done) return entries[i].id;
+    for (let i = 0; i < index && i < entries.length; i++) if (!entries[i].done) return entries[i].id; // a skipped stop: back to it before the airlock
     return 'START';
   }
 
@@ -717,7 +719,13 @@ export async function createStations({ mission, scene, camera, renderer, player 
 
       // The station's "what to do now" line: redraw the card only when it changes.
       if (active && active.station.prompt) {
-        const prompt = active.station.prompt() || '';
+        let prompt = shown.prompt;
+        try {
+          prompt = active.station.prompt() || '';
+        } catch (error) {
+          if (!active.promptFailed) console.error(`Station ${active.id} prompt:`, error);
+          active.promptFailed = true; // a broken prompt must not stop the frame loop
+        }
         if (prompt !== lastPrompt) {
           lastPrompt = prompt;
           if (prompt !== shown.prompt) {

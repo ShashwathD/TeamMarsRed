@@ -8,7 +8,7 @@ import { fillPlaceholders } from '../mission.js';
 //
 // 1. Turn on the slope layer (tablet LAYERS tab; A or E here does the same).
 // 2. Two signs appear, DIRECT and PLANNED, and the straight line from the
-//    start to stop 4 is drawn on the ground. Point at a sign and press the
+//    start to the core stop is drawn on the ground. Point at a sign and press the
 //    trigger (click on desktop).
 //    DIRECT:  an amber or red SLOPE CAUTION on the HUD (by how steep the
 //             straight line gets) and one more slope warning in the count.
@@ -140,11 +140,12 @@ export function createStation(ctx) {
 
   // ---- state ----------------------------------------------------------------------
   const state = { entered: false, slopeSeen: false, choice: null, chargedS: 0 };
+  const toStop = String(data.route.direct.to).replace(/^S/, ''); // the stop the straight line runs to (from the data)
   const PROMPT = {
     slopeVr: 'Step 1 of 2: turn on the slope layer. Tablet, LAYERS tab (or press A).',
     slopeDesk: 'Step 1 of 2: turn on the slope layer. Tablet (Tab), LAYERS (or press E).',
-    chooseVr: 'Step 2 of 2: which way to stop 4? Point at the DIRECT or PLANNED sign and press the trigger.',
-    chooseDesk: 'Step 2 of 2: which way to stop 4? Click the DIRECT or PLANNED sign.',
+    chooseVr: `Step 2 of 2: which way to stop ${toStop}? Point at the DIRECT or PLANNED sign and press the trigger.`,
+    chooseDesk: `Step 2 of 2: which way to stop ${toStop}? Click the DIRECT or PLANNED sign.`,
     done: '',
   };
 
@@ -194,7 +195,7 @@ export function createStation(ctx) {
         old.dispose();
       } else other.face.material.color.setScalar(0.45);
     }
-    ctx.log({ title: 'Stop 2: Read the ground', lines });
+    ctx.log({ title: `Stop ${station.id.replace(/^S/, '')}: ${station.title}`, lines });
     ctx.done();
     return true;
   }
@@ -221,7 +222,11 @@ export function createStation(ctx) {
       if (layerSet.get('slope')) state.slopeSeen = true; // already on: straight to the choice
       showChoices();
     },
-    onLeave() {},
+    onLeave() {
+      // Away from the stop the signs and the straight line are put away (the line runs all the way to the core stop).
+      state.entered = false;
+      showChoices();
+    },
     update() {
       if (!signs[0].group.visible) return;
       // The signs turn to face the explorer (about the vertical axis only).
