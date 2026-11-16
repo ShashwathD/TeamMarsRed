@@ -9,6 +9,7 @@ import { createNorthMarker } from './northMarker.js';
 import { createFrameMeter } from './frameMeter.js';
 import { createXR } from './xr.js';
 import { MISSION_SITES, createMission } from './mission/mission.js';
+import { createCabin } from './mission/cabin.js';
 
 const DEFAULT_SITE = 'jezero_delta';
 const DESKTOP_FOV = 70; // degrees, vertical
@@ -150,6 +151,16 @@ async function start() {
       });
       player.setPosition(mission.spawn.x, mission.spawn.z);
       player.setHeading(mission.spawn.headingDeg);
+      // B8: the experience starts in the rover cabin; ?skipcabin=1 starts outside.
+      // A cabin that fails to build leaves the walk itself usable.
+      try {
+        const cabin = createCabin({ mission, scene, camera, renderer, player, xr, patch, terrain, surround });
+        if (params.get('skipcabin') === '1') cabin.startOutside();
+        else cabin.enter('briefing');
+      } catch (error) {
+        console.error(error);
+        missionNote = ` (cabin not loaded: ${error.message})`;
+      }
     } catch (error) {
       console.error(error);
       missionNote = ` (mission not loaded: ${error.message})`;
@@ -186,6 +197,7 @@ async function start() {
     player.headPosition(viewer);
     terrain.update(viewer.x, viewer.z);
     if (mission) mission.update(clock.elapsedTime, viewer, dt);
+    if (mission && mission.cabin) mission.cabin.update(dt, clock.elapsedTime, viewer); // B8
     renderer.render(scene, camera);
     frames++;
   });
