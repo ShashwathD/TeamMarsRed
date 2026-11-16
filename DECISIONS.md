@@ -399,3 +399,77 @@ cap is faster than that. It stays as the brief's ASSUMPTION and is labelled so; 
   and a dot and a beam per pointing controller), one 1280 x 896 canvas texture; sample markers
   516 triangles, 1 draw call, plus the signs (18 triangles, 1 draw call) and, once shown, the
   rover stop studs (960 triangles, 1 draw call); slope map 1 MB plus mipmaps.
+
+## Mission B5 to B8, credits, and the merge (2026-11-15)
+
+Five steps were built in parallel on separate branches and joined in one merge. Decisions that
+later work must know:
+
+### Stations
+
+- One file per station in `src/mission/stations/`, exporting `createStation(ctx)`; the list is
+  `REGISTRY` in `stations/index.js`. A file that is missing or throws becomes a placeholder
+  (card text from the mission file, A / E logs the visit), so one broken station cannot stop the walk.
+- A station is active within its radius of the beacon (14 m; a map teleport lands 5 to 8 m short)
+  and stops being active 6 m beyond it. Stations can be done in any order. NEXT on the HUD goes to
+  the first stop not yet done after the one just finished, then back to any skipped stop, then to
+  the airlock.
+- Who gets a press: tablet and other panels first, then the active station, then the cabin's door
+  or the rover marker, then teleport.
+- Nothing is active while the explorer is inside the cabin, and the S1 briefing is shown only on
+  the cabin hologram. With `?skipcabin=1` the S1 card is shown at the start spot outside instead.
+- `mission.stats` stays the function from B2 (triangle count, used by old tests) with the debrief
+  counters as properties on it: `stationsDone`, `stationCount`, `coresLogged`, `coreCount`,
+  `slopeWarnings`, `fieldCheck`, `distanceM`, `path`. Do not replace it with a plain object.
+- `mission.stats.path` is a flat array `[x0, z0, x1, z1, ...]`, written by the cabin about every
+  3 m outside (the framework writes it only when there is no cabin).
+- One sample tube shape for stops 4 and 5: `stations/tube.js`. It is a simulated prop, oversized
+  on purpose, not a model of the real Mars 2020 tube.
+
+### Stop 2 time rule
+
+- On this terrain the straight line is 14 s quicker than the planned route. So DIRECT costs no
+  time (it gives the slope caution and one more red warning) and PLANNED adds the real
+  difference, 14.1 s. A penalty for DIRECT would be a rule the brief does not state.
+- A / E at stop 2 switches the slope layer on, as a shortcut for the tablet's LAYERS chip.
+- The DIRECT / PLANNED signs and the white straight line are shown only while at stop 2.
+
+### Stops 3 and 4
+
+- The rover path stays hidden until stop 3 is reached, as the brief's layer section asks.
+- The coring rock at stop 4 is placed by a rule: 4.1 m from the site, at the first turn angle
+  that leaves 2.2 m clear of both the blue route and the rover's path. The coring is simulated
+  and the position is approximate; the card says both.
+
+### Stop 5 and panoramas
+
+- Panorama convention (open since B1): image column 0 is north, azimuth grows eastward, row 0 is
+  the zenith, and no rover yaw is applied (the stitcher already turned the frames to compass).
+  Checked against the terrain model for Wildcat Ridge (skyline correlation 0.98); the same check
+  for Skinner Ridge was inconclusive because the rover deck is in the frame.
+- Inside the 360 view the terrain, route and beacons are hidden: a photo of the ground and the
+  drawn ground do not line up. The pad is about 10 m from where each panorama was taken.
+- The pad is tilted to the ground under it so its uphill side is not buried.
+- Field Check: no penalty, no time charged; a wrong pick shows the right answer and its source
+  on two lines. Only the first run sets the score kept for the debrief.
+
+### Cabin
+
+- The cabin never moves. DEPART plays a starfield outside the window for about 6 s.
+- While inside: clock stopped, HUD hidden, no teleport, tablet map jumps refused before anything
+  is charged, every scene object hidden except cabin, rig, lights, sky, UI pointers and tablet.
+- After arrival the window shows a 33 x 33 low-poly copy of the real terrain (2,048 triangles),
+  not the terrain itself. Set `WINDOW_VIEW = false` in `cabin.js` if the team reads "terrain
+  hidden in the cabin" strictly.
+- The rover marker outside is picked by the rover's own box, from up to 40 m; B works within 8 m.
+  The walk starts 9.8 m from it, so a stray B at the start does nothing.
+- Debrief "distance covered" mirrors the clock's distance, so it includes teleports and map jumps.
+
+### Credits
+
+- The tablet's LAYERS tab ends with CREDITS pages built from the mission file plus fixed lines
+  that repeat `CREDITS.md` word for word (change both together). A credit is never split across
+  a page turn. Read the page count from the pager; do not hard-code it.
+- Mission file changes: `cards.S5A.positionNote` (sols computed from the cores, shown on the stop
+  5 card), `layers[samples].retrieved`, and the panorama credit wording.
+- F7's source is cited directly as EVA-EXP-0075 because the document was opened and checked.

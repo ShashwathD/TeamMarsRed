@@ -16,7 +16,8 @@ export const TUBE_RADIUS_M = 0.024;
 
 const geometries = new Map();
 
-function tubeGeometry(accent) {
+// The one tube shape, shared by every station (S4 Berea, S5 Ridge lookout).
+export function sampleTubeGeometry(accent = PALETTE.teal) {
   if (geometries.has(accent)) return geometries.get(accent);
   const r = TUBE_RADIUS_M;
   const l = TUBE_LENGTH_M;
@@ -32,7 +33,7 @@ function tubeGeometry(accent) {
 
 // options: { accent (palette colour of the band; teal by default), name }
 export function createSampleTube({ accent = PALETTE.teal, name = 'sample-tube' } = {}) {
-  const mesh = new THREE.Mesh(tubeGeometry(accent), lowPolyMaterial());
+  const mesh = new THREE.Mesh(sampleTubeGeometry(accent), lowPolyMaterial());
   mesh.name = name;
   return mesh;
 }

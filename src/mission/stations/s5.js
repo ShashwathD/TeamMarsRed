@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { PALETTE, lowPolyMaterial, mergeParts } from '../lowpoly.js';
-import { THEME, createPanel, fillChamfer, fitText, setFont } from '../ui.js';
+import { THEME, createPanel, fillChamfer, fitText, setFont, wrapLines } from '../ui.js';
 import { sampleGrid } from '../route.js';
 import { createFieldCheck } from '../fieldcheck.js';
+import { TUBE_LENGTH_M, sampleTubeGeometry } from './tube.js'; // the shared sample tube
 
 // S5 RIDGE LOOKOUT (brief: S5, FIELD CHECK, LAYER BEHAVIOUR 5).
 // One station for Skinner Ridge + Wildcat Ridge. Written to the stations
@@ -68,17 +69,6 @@ function ensureStats(mission) {
   if (!mission.stats) mission.stats = fresh;
   else for (const key of Object.keys(fresh)) if (!(key in mission.stats)) mission.stats[key] = fresh[key];
   return mission.stats;
-}
-
-// MERGE: dedupe tube helper
-// A chunky sample tube standing along +y, about 0.24 m tall (oversized on purpose).
-function tubeGeometry() {
-  return mergeParts([
-    { geometry: new THREE.CylinderGeometry(0.03, 0.03, 0.18, 6), color: PALETTE.offWhite },
-    { geometry: new THREE.CylinderGeometry(0.038, 0.038, 0.045, 6), color: PALETTE.teal, y: 0.11 },
-    { geometry: new THREE.CylinderGeometry(0.034, 0.034, 0.02, 6), color: PALETTE.marsOrange, y: 0.03 },
-    { geometry: new THREE.ConeGeometry(0.03, 0.04, 6).rotateX(Math.PI), color: PALETTE.slate, y: -0.11 },
-  ]);
 }
 
 // Equirectangular sphere seen from inside: image column 0 at north (-z),
@@ -223,11 +213,11 @@ export function createStation(ctx) {
   stand.add(screen.mesh);
   if (mission.ui) mission.ui.add(screen);
 
-  const tubeShape = tubeGeometry();
+  const tubeShape = sampleTubeGeometry(PALETTE.teal);
   const tubes = cores.map((core, k) => {
     const mesh = new THREE.Mesh(tubeShape, lowPolyMaterial());
     mesh.name = `s5-tube-${core.number}`;
-    const home = new THREE.Vector3((k - (cores.length - 1) / 2) * 0.2, rackY + 0.16, 0);
+    const home = new THREE.Vector3((k - (cores.length - 1) / 2) * 0.2, rackY + 0.03 + TUBE_LENGTH_M * 0.52, 0);
     mesh.position.copy(home);
     stand.add(mesh);
     return { core, mesh, home, logged: false };
@@ -460,7 +450,12 @@ export function createStation(ctx) {
     fitText(g, state.status, 32, 262, 42, W - 64, { minPx: 34 });
     const pano = panoramas.find((p) => p.id === state.view);
     g.fillStyle = THEME.dim;
-    if (pano) fitText(g, `Photo: ${pano.credit}`, 32, 314, 38, W - 64, { minPx: 30 });
+    if (pano) {
+      // The whole credit, on up to two lines (it names the images and the stitching pipeline).
+      setFont(g, 30);
+      const creditLines = wrapLines(g, `Photo: ${pano.credit}`, W - 64).slice(0, 2);
+      creditLines.forEach((line, k) => g.fillText(line, 32, (creditLines.length > 1 ? 304 : 314) + k * 34));
+    }
 
     // The four cores.
     g.fillStyle = THEME.accent;
@@ -523,7 +518,7 @@ export function createStation(ctx) {
     return [
       {
         title: cardA.title,
-        body: `${mission.cardText('S5A')}\nNow (NASA's list, retrieved ${retrieved}): ${where}. Positions are approximate (the rover's waypoint at that sol).`,
+        body: `${mission.cardText('S5A')}\nNow (NASA's list, retrieved ${retrieved}): ${where}. ${cardA.positionNote || "Positions are approximate (the rover's waypoint at that sol)."}`,
         source: cardA.source,
       },
       {

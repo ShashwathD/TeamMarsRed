@@ -29,9 +29,13 @@ python3 tools/stitch_mosaic.py jezero jezero_delta
 
 ## Controls
 
-Every VR action has a desktop key. "planned" marks what the brief specifies but this branch's code
-does not do yet (mission steps B5 to B8 were being built on other branches when this was written);
-re-check these rows after the merge.
+Every VR action has a desktop key. "works" means it passed the desktop and headset-emulator tests;
+nothing has been tried on a real headset.
+
+The experience starts in the rover cabin: read the briefing card on the hologram table, select
+DEPART, wait about 6 seconds for the airlock light to turn green, then open the door behind you.
+Outside, select the rover (from up to 40 m) or press the door key within 8 m of it to go back in
+for the debrief.
 
 | Action | Quest 3S | Desktop | State |
 |---|---|---|---|
@@ -39,11 +43,11 @@ re-check these rows after the merge.
 | Walk | (teleport only) | `W` `A` `S` `D` or arrow keys; hold `Shift` to run | works |
 | Teleport | hold the right trigger on open ground to aim, release to jump | hold `T` or the right mouse button, release to jump | works |
 | Turn | right thumbstick left / right (snap turn) | mouse, or left / right arrow | works |
-| Select / confirm (tablet buttons, cards, DEPART, coring at the marked rock) | point the right controller, press the trigger | mouse click | works for the tablet; the rest planned |
+| Select / confirm (tablet buttons, cards, DEPART, coring at the marked rock) | point the right controller, press the trigger | mouse click | works |
 | Tablet on / off | `Y` on the left controller, or look down at your left forearm | `Tab` or `Y` | works |
-| Scan at a station | `A` | `E` | key is wired (`mission.actions.scan`); the scan itself is planned |
-| Airlock door | `B`, or point at the door and press the trigger | `B`, or click the door | key is wired (`mission.actions.door`); the door is planned |
-| Hold a sample tube | right grip | `G` | planned |
+| Scan at a station | `A` | `E` | works: slope layer at stop 2, rover-path pulse at stop 3, switch ridge at stop 5 |
+| Airlock door | `B`, or point at the door and press the trigger | `B`, or click the door | works (inside: opens the airlock once the light is green; outside: back to the rover) |
+| Take / put back a sample tube (stops 4 and 5) | right grip | `G` | works |
 | Frame-time readout | `X` on the left controller | `F` | works |
 
 Without the mission (`?mission=0`, `?tablet=0`, or a site other than `jezero_delta`) the `A`, `B`,
@@ -61,7 +65,7 @@ Add them to the address after `?`, joined with `&` (for example `?site=jezero&de
 | `frametime=1` | Starts with the frame-time readout on. | works |
 | `tablet=0` | Mission without the forearm tablet. | works |
 | `mission=0` | Plain terrain viewer: no mission, start at the patch centre. | works |
-| `skipcabin=1` | Start outside on the surface instead of in the rover cabin. | planned (cabin step B8) |
+| `skipcabin=1` | Start outside on the surface instead of in the rover cabin. | works |
 
 Publishing and headset checks: `PUBLISH.md`. Data and software credits: `CREDITS.md`.
 Screenshots of the delta and where they were taken: `docs/screenshots/`.
@@ -91,8 +95,14 @@ Screenshots of the delta and where they were taken: `docs/screenshots/`.
 - `src/mission/tablet.js` - forearm tablet: MAP (with teleport to a stop), LOG, LAYERS, HELP
 - `src/mission/credits.js` - the credits as data (from the mission file, plus fixed lines that repeat `CREDITS.md`) and as paged canvas text; used by the tablet's LAYERS tab, and `createCreditsPanel` gives a stand-alone panel
 - `src/mission/layers.js` - data layers the tablet switches: photo, slope hazard, rover path and stops, sample sites, panoramas (the backdrop is always on)
+- `src/mission/stations/index.js` - station framework: the list of stations, which one is active (by distance), the station card, who gets a press (tablet and panels, then the station, then teleport), the right-hand hold, completion
+- `src/mission/stations/tube.js` - the one shared low-poly sample tube
+- `src/mission/stations/s2.js` - stop 2, Read the ground: slope layer, DIRECT and PLANNED signs
+- `src/mission/stations/s3.js` - stop 3, Follow the rover: reveals the rover path, scan pulse toward the next stop
+- `src/mission/stations/s4.js` - stop 4, Berea: take the tube, core the marked rock (simulated), notebook entry
 - `src/mission/stations/s5.js` - stop 5, Ridge lookout: panorama pad (360 view of Skinner Ridge or Wildcat Ridge), four sample tubes to log, cards
 - `src/mission/fieldcheck.js` - Field Check: four tap questions on the tablet, score kept for the debrief
+- `src/mission/cabin.js` - rover cabin: briefing hologram, DEPART, airlock door, return marker outside, debrief with route replay
 - `tools/build_mission.py` - builds `data/mission/<site>.json`; plans the route through `tools/route_cli.mjs` (needs Node.js)
 
 On the delta patch the mission layer is loaded: a blue route ribbon, the rover's real path in

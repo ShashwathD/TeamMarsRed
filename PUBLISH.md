@@ -4,7 +4,8 @@ The site is plain static files at the top of this repository: `index.html`, `sty
 and `data/`. There is nothing to build. All addresses inside it are relative, so it works from a
 sub-folder address such as `https://NAME.github.io/TeamMarsRed/`.
 
-Nothing has been pushed. The work is on the local branch `jezero-delta-terrain`.
+Nothing has been pushed. The mission work is on the local branch `marswalk-mission` (the earlier
+terrain viewer is on `jezero-delta-terrain`); use the branch you want to publish in the commands below.
 
 What was checked before writing this (on a Mac, not on a headset):
 
@@ -204,8 +205,7 @@ Do Part 3 first. Then do these in order, standing, on the default page. With the
 the buttons are: right trigger = select, confirm and teleport; right grip = hold a tube; `A` =
 scan; `B` = airlock door; left `Y` = tablet; left `X` = frame-time readout (not A, B or Y as in
 Part 3); right thumbstick = snap turn. To skip the cabin while re-checking outdoor items, add
-`?skipcabin=1` to the address (planned with the cabin step; if it does nothing, go through the
-cabin each time).
+`?skipcabin=1` to the address.
 
 For each item write down pass or fail, what you saw, and both frame-time numbers.
 

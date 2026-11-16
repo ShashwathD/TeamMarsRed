@@ -1124,11 +1124,13 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
       state.dialog = null;
       dirty = true;
       const before = clock.elapsedS;
+      const metresBefore = clock.distanceM;
       clock.charge(cost.seconds, { metres: cost.metres, reason: 'teleport' });
       const moved = mission.travelTo(target.landX, target.landZ, target.headingDeg);
       if (!moved) {
         // Could not move (should not happen on the route): give the time back.
         clock.elapsedS = before;
+        clock.distanceM = metresBefore; // and the distance
         clock.charge(0);
         return false;
       }

@@ -496,6 +496,11 @@ export async function createStations({ mission, scene, camera, renderer, player 
     shown.cards = safely(entry, 'cards', () => station.cards()) || [];
     if (shown.page >= shown.cards.length) shown.page = 0;
     shown.prompt = (station.prompt && safely(entry, 'prompt', () => station.prompt())) || '';
+    // A station without prompt() may give its control hint as `action` on the card (S3, S4).
+    if (!shown.prompt && !station.prompt && !entry.done) {
+      const card = shown.cards[shown.page] || shown.cards[0];
+      if (card && card.action) shown.prompt = card.action;
+    }
     shown.done = entry.done;
     cardDirty = true;
   }
@@ -683,6 +688,14 @@ export async function createStations({ mission, scene, camera, renderer, player 
     // Once per frame. viewer = world position of the head. No allocations
     // (except one path point every PATH_STEP_M metres walked).
     update(dt, viewer) {
+      // In the rover cabin (B8) nothing outside is live: no station, no card.
+      // (The viewer stands on the start spot there.)
+      if (mission.cabin && mission.cabin.inside) {
+        if (active) leave();
+        if (shown.key !== null) showNothing();
+        panel.mesh.visible = false;
+        return;
+      }
       // Which station the explorer is at.
       let nearest = null;
       let nearestD = Infinity;
@@ -742,10 +755,12 @@ export async function createStations({ mission, scene, camera, renderer, player 
       // Numbers for the debrief.
       stats.slopeWarnings = mission.slopeWarnings.amber + mission.slopeWarnings.red;
       stats.distanceM = mission.clock.distanceM;
-      if (!(Math.hypot(viewer.x - pathX, viewer.z - pathZ) < PATH_STEP_M)) {
+      // The walked path is a FLAT array [x0, z0, x1, z1, ...]. The cabin (B8)
+      // records it (every 3 m) when it is there; this is the fallback without one.
+      if (!mission.cabin && !(Math.hypot(viewer.x - pathX, viewer.z - pathZ) < PATH_STEP_M)) {
         pathX = viewer.x;
         pathZ = viewer.z;
-        stats.path.push([Math.round(viewer.x * 10) / 10, Math.round(viewer.z * 10) / 10]);
+        stats.path.push(Math.round(viewer.x * 10) / 10, Math.round(viewer.z * 10) / 10);
       }
     },
   };

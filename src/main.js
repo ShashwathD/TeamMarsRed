@@ -156,7 +156,11 @@ async function start() {
       try {
         const cabin = createCabin({ mission, scene, camera, renderer, player, xr, patch, terrain, surround });
         if (params.get('skipcabin') === '1') cabin.startOutside();
-        else cabin.enter('briefing');
+        else {
+          cabin.enter('briefing');
+          // The S1 briefing is read on the cabin hologram: no second copy at the start spot outside.
+          if (mission.stationSet) mission.stationSet.showBriefingCard(false);
+        }
       } catch (error) {
         console.error(error);
         missionNote = ` (cabin not loaded: ${error.message})`;

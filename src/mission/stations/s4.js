@@ -1,5 +1,6 @@
 import { PALETTE, lowPolyMaterial, mergeParts } from '../lowpoly.js';
 import { nearestOnLine } from '../route.js';
+import { TUBE_LENGTH_M, TUBE_RADIUS_M, sampleTubeGeometry } from './tube.js'; // the shared sample tube
 
 // Station S4, BEREA: FIRST CORE (brief: S4).
 //
@@ -25,7 +26,6 @@ const ROCK_HIT_RADIUS_M = 0.95; // generous: pointing anywhere at the rock count
 const HOLDER_X_M = 1.15; // holder beside the rock (in the site group's own axes)
 const HOLDER_Z_M = 0.1;
 const HOLDER_TOP_M = 0.9;
-const TUBE_LENGTH_M = 0.25;
 const TUBE_WORLD_SCALE = 2.2; // oversized on the holder and the rock so it reads from a few metres
 const HELD_TILT_RAD = 1.05; // in the hand the tube leans like a drill: bit forward, cap toward the user
 
@@ -34,19 +34,6 @@ const DRILL_S = 1.5;
 const RISE_S = 0.3;
 const STOW_S = 0.4;
 const DRILL_DEPTH_M = 0.13;
-
-// MERGE: dedupe tube helper
-// A chunky six-sided sample tube standing along +Y, centred on its middle:
-// off-white body, slate cap on top, amber band, slate coring bit below.
-function createTubeGeometry(THREE) {
-  const r = 0.032;
-  return mergeParts([
-    { geometry: new THREE.CylinderGeometry(r, r, 0.17, 6), color: PALETTE.offWhite, y: 0 },
-    { geometry: new THREE.CylinderGeometry(r * 1.25, r * 1.25, 0.05, 6), color: PALETTE.slate, y: 0.1 },
-    { geometry: new THREE.CylinderGeometry(r * 1.12, r * 1.12, 0.022, 6), color: PALETTE.amber, y: 0.035 },
-    { geometry: new THREE.CylinderGeometry(r * 0.9, r * 0.6, 0.04, 6), color: PALETTE.slate, y: -0.105 },
-  ]);
-}
 
 export function createStation(ctx) {
   const { THREE, mission, patch, station } = ctx;
@@ -147,11 +134,11 @@ export function createStation(ctx) {
   // `tube` is what the hand holds; the mesh inside it carries the lean.
   const tube = new THREE.Group();
   tube.name = 'station-S4-tube';
-  const tubeMesh = new THREE.Mesh(createTubeGeometry(THREE), lowPolyMaterial());
+  const tubeMesh = new THREE.Mesh(sampleTubeGeometry(PALETTE.amber), lowPolyMaterial());
   tubeMesh.name = 'station-S4-tube-body';
   tube.add(tubeMesh);
   const seal = new THREE.Mesh(
-    mergeParts([{ geometry: new THREE.CylinderGeometry(0.047, 0.047, 0.03, 6), color: PALETTE.teal, y: 0.14 }]),
+    mergeParts([{ geometry: new THREE.CylinderGeometry(TUBE_RADIUS_M * 1.5, TUBE_RADIUS_M * 1.5, 0.026, 6), color: PALETTE.teal, y: TUBE_LENGTH_M * 0.46 + 0.013 }]),
     lowPolyMaterial(),
   );
   seal.name = 'station-S4-tube-seal';

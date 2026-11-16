@@ -615,3 +615,198 @@ Known problems:
 - From some angles a short stake stands in front of a sample site's sign.
 - In emulated VR about 302,000 triangles are drawn over both eyes at the start (about 151,000
   per eye), at the guide.
+
+## Mission B5 to B8 and credits: built in parallel, then merged (2026-11-15)
+
+Five steps were built at the same time on separate branches (`mission-b5`, `-b6`, `-b7`, `-b8`,
+`-docs`), each reviewed by a second engineer, then merged into `marswalk-mission` in that order.
+The five merges had no text conflicts. The sections below say what each step did, then what the
+merge changed and what was tested on the merged page.
+
+Nothing in any of these sections ran on a real Quest 3S. Every check is headless Chromium with
+software rendering; VR is emulated with iwer. Frame rate, legibility, comfort and how a held
+tube sits in a real hand are all unverified.
+
+## Mission B5: station framework and stop 2
+
+Done:
+
+- `src/mission/stations/index.js`: the list of stations, which one is active (within 14 m of
+  its beacon, off again 6 m beyond), the station card (above the forearm tablet in VR, right of
+  the view on desktop), who gets a press (tablet and panels, then the station, then teleport),
+  the right-hand hold, and completion (20 min stop once, done beacon, notebook entry, NEXT).
+- Stop 2, Read the ground: the slope layer, then DIRECT and PLANNED signs and a white straight
+  line to stop 4. DIRECT gives the slope caution; PLANNED adds the real time difference.
+- `stations/tube.js`: the shared sample tube (96 triangles).
+
+Measured (step's own review): straight line reaches 19.5 degrees; planned route 14.14 s longer;
+route 3.4 km, 4 stops, all recomputed from the raw terrain file. Stop 2 is 768 triangles in 5
+meshes. 30 desktop and 20 VR frames at a station: no card redraw, no new textures or geometries.
+
+Known problems:
+
+- DIRECT costs no time because the straight line is 14 s quicker on this terrain; PLANNED adds
+  14.1 s on top of the normal movement charge. A penalty for DIRECT would be a new rule.
+- The signs and the white line disappear about 20 m from stop 2, so the line cannot be followed.
+- On desktop the card covers the upper right of the view and has no hide key (it hides while the
+  tablet is up). At stop 5 it overlaps part of the stand's screen.
+- With no left controller in VR the card stands in the world and slightly overlaps the HUD strip.
+
+## Mission B6: stops 3 and 4
+
+Done:
+
+- Stop 3, Follow the rover: reveals the rover path on arrival; A / E sends a pulse along it
+  toward the next stop, writes "Rover path scanned" and completes the stop.
+- Stop 4, Berea: grip / G takes the tube from its holder; trigger / click at the marked rock
+  with the tube held runs a 2.65 s simulated coring, flashes SAMPLE SEALED and writes the core's
+  name, sol, size and type from the data. A press aimed at the rock never teleports.
+
+Measured: stop 3 is 492 triangles in 1 mesh, stop 4 about 280 in 5 meshes. The rock stands
+3.67 m from the route and 2.49 m from the rover path. A whole pulse creates no geometries,
+textures or shader programs.
+
+Known problems:
+
+- The held tube leans 1.05 rad inside the framework's own hand tilt; in the emulator the two
+  nearly cancel in VR. The pose in a real hand is unknown.
+- Looking down at the rock from close up, the HUD strip crosses it (it does not block the click).
+
+## Mission B7: stop 5 and the Field Check
+
+Done:
+
+- Stop 5, Ridge lookout: a pad with a see-through dome. Standing on it opens the 360 view of
+  Skinner Ridge (sol 477) or Wildcat Ridge (sol 502), each a 4096 x 2048 stitched Navcam
+  panorama loaded only when near; A / E switches ridge. A stand shows which ridge is up and holds
+  four tubes; grip / G or a trigger on a tube logs that core (name, sol, length, type, where it
+  is now, "retrieved 2026-09-29", "approximate").
+- Field Check on the tablet after the four cores: four questions from the mission file, the
+  right answer and its source shown after a wrong pick, score kept for the debrief, no penalty.
+
+Measured: station objects 592 triangles, sphere 1,600. Inside the 360 view the emulated VR frame
+is about 6,750 triangles over both eyes. Compass direction of the panorama confirmed against the
+terrain for Wildcat Ridge (skyline correlation 0.98, mean error 1.3 degrees).
+
+Known problems:
+
+- The same compass check for Skinner Ridge was inconclusive (rover deck in the frame).
+- The pad is about 10 m from where each panorama was really taken.
+- With `?tablet=0` the Field Check cannot open, so stop 5 can never be done in that mode.
+- Logging a core and switching ridge both flash SCAN; the brief names no HUD reaction here.
+- From 4 m on a desktop window the stand screen is too small to read; it reads at about 1.2 m.
+- The upload hitch of a 4096 x 2048 texture on a headset is unknown.
+
+## Mission B8: cabin, DEPART, airlock, return, debrief
+
+Done:
+
+- `src/mission/cabin.js`: the experience starts in a low-poly rover cabin at the start spot:
+  hologram table with a 0.9 m relief of the whole patch, the dotted route and the S1 briefing
+  card, a console, a mission log panel, an airlock door with a red / green lamp.
+- DEPART plays a starfield for about 6 s (the cabin does not move); then the door opens by B, by
+  a click or by a trigger on it. Outside, the rover stands as a return marker: trigger / click on
+  it from up to 40 m, or B within 8 m, goes back inside for the debrief (EVA time, distance,
+  stations, cores, slope warnings, Field Check, a replay of the path taken).
+- Inside: clock stopped, HUD hidden, no teleport, map jumps refused, the world hidden.
+- `?skipcabin=1` starts outside as before.
+
+Measured: cabin 2,954 triangles and 21 draw calls; marker 322 triangles. Emulated VR inside:
+about 7,600 triangles over both eyes (11,700 after arrival, with the window view).
+
+Known problems:
+
+- After arrival the window shows a 33 x 33 low-poly copy of the terrain, not the terrain itself.
+- In VR the user can physically step through the cabin walls; only desktop walking is clamped.
+- The debrief console's small note lines (23 px) are 2.9 m from the standing spot in VR.
+- Debrief distance includes teleports and map jumps (the console says so). After a short walk
+  the replay line is tiny.
+- B at the start spot does nothing (the rover is 9.8 m away, B works within 8 m).
+- Lamp green 0x3fd07a is the one colour outside the shared palette.
+
+## Credits and docs
+
+Done:
+
+- `src/mission/credits.js` and CREDITS pages at the end of the tablet's LAYERS tab (2 chip
+  pages + 7 credits pages); no credit is split across a page turn.
+- `CREDITS.md` rewritten with every data source, the fact sources F1 to F9 and the
+  AI-assistance line; README controls and URL flags; a Quest 3S checklist in `PUBLISH.md`.
+- Mission file: `cards.S5A.positionNote`, a retrieved date on the samples layer, new panorama
+  credit wording. `tools/build_mission.py` reproduces the committed file byte for byte.
+
+Known problems:
+
+- The AI-assistance wording ("Claude, by Anthropic", "directed by the team") needs the team's
+  confirmation; it is in `CREDITS.md` and `credits.js` and must be changed in both.
+- Team Protikriti's licence and repository link are missing; there are no addresses for fact
+  sources F2 to F6 because the repository has none.
+- `PUBLISH.md` Part 4 was written from the brief before the code was merged; only the
+  `skipcabin` note and the branch name were corrected at the merge.
+
+## The merge
+
+What the merge changed on top of the five branches:
+
+- Stops 3, 4 and 5 now load through the framework's list; all four stops are real modules.
+- One tube shape: stops 4 and 5 use `stations/tube.js`; their private copies are gone.
+- `mission.stats.path`: the framework and the cabin wrote two different formats into the same
+  array. The cabin's flat format is kept; the framework writes it only when there is no cabin.
+- No station is active and no station card shows while inside the cabin. The S1 briefing shows
+  on the cabin hologram only (outside at the start spot only with `?skipcabin=1`).
+- Stops 3 and 4 give their control hint as `action` on the card; the framework now shows it as
+  the "what to do now" line.
+- The stop 5 card shows the mission file's `positionNote`. The longer panorama credit was cut
+  off on the stand screen; it now wraps onto two lines.
+- A refused tablet map jump now gives back the distance as well as the time.
+- README controls and flags no longer say "planned"; DECISIONS.md has a section for these steps.
+
+Tested on the merged page (server on port 8151):
+
+- My combined walk-through (`merge/own/walk.cjs`), once on desktop and once in emulated VR:
+  32 of 32 each, no console errors. It goes cabin, DEPART (mouse click / ray), door (B), then
+  each stop by tablet map jump: stop 2 (A / E, then a click or ray on PLANNED), stop 3 (A / E),
+  stop 4 (grip, then a click or ray at the rock, wait for the seal), stop 5 (onto the pad, A / E
+  to switch ridge, grip four times, Field Check by taps with one wrong answer), back to the
+  start, a click or ray on the rover, debrief. The debrief showed 4 of 4 stops, 5/5 cores, 3/4
+  right, 3.44 km and 2 h 25 min. No trigger aimed at a sign, the rock or the rover started a
+  teleport; no teleport or map jump worked inside the cabin.
+- I looked at 12 desktop and 4 VR screenshots of that run (cabin card, signs, held tube, sealed
+  rock, pulse, 360 view, Field Check, rover marker, debrief). Text is legible; nothing floats,
+  is buried or overflows, apart from the known overlaps listed above.
+- B5 reviewer tests: desktop 29 of 29, VR 13 of 13 (two desktop checks changed to complete stops
+  4 and 5 by `stationSet.complete`, since those stops are no longer placeholders). B5 contract
+  test, never run before: 6 of 7; the one failure is the test's own check (`ray.isRay` does not
+  exist in Three.js). B5 builder tests: VR 10 of 10; desktop 24 of 29, all five failures being
+  checks that expect placeholder stops.
+- B6 reviewer tests, re-pointed at the real framework: desktop 30 of 31 (the failure is a
+  texture count that went down by one, not a leak), VR 11 of 11.
+- B7 reviewer tests, re-pointed at the real framework: desktop 52 of 53 (the failure is a check
+  I mis-edited; the same fact passes in the combined test), VR 16 of 16. The first run found a
+  real fault: the longer panorama credit was cut off on the stand screen (fixed, see above).
+- B8 reviewer tests: desktop 42 of 42, VR 21 of 21. B8 builder tests: 42 of 42 and 21 of 21.
+- Credits tests: reviewer desktop 54 of 54, VR 24 of 24, builder desktop 27 of 27.
+- Earlier steps, with `?skipcabin=1`: B4 reviewer desktop 46 of 47 and VR 16 of 17 (both
+  failures are the old single-page credits checks, replaced by the credits tests), B4 builder VR
+  26 of 26, B3 reviewer 32 of 32 and 18 of 18, B2 reviewer 20 of 20 and 7 of 7, step-5 with
+  `&tablet=0` 55 of 55.
+- The docs, B8 and regression runs were made before two late one-line changes (the `action`
+  line on the card, the two-line panorama credit); the combined test, B5, B6, B7 and B8 reviewer
+  desktop tests were run again after them.
+
+Measured on the merged page:
+
+- Whole scene from the start spot: 235,508 triangles, 288 draw calls (141,018 and 131 in view).
+- Station objects: stop 2 768 triangles, stop 3 492, stop 4 278, stop 5 2,240 (sphere included).
+- Emulated VR, triangles and draw calls over both eyes: start 302,308 / 298; stop 2 301,692 /
+  286; stop 3 299,368 / 200; stop 4 288,736 / 154; stop 5 off the pad 202,348 / 64. The start
+  and stop 2 are at the ~300k guide, as they were before these steps.
+
+Not verified:
+
+- Anything on a real Quest 3S.
+- The B6 and B7 builders' own tests, the B2 and B3 builders' tests and the B4 builder's desktop
+  test were not rerun (the reviewers' versions were).
+- Walking between stops on foot: the combined test moves by tablet map jump and one direct move
+  onto the stop 5 pad. Earlier steps tested walking and arc teleports separately.
+- Mouse clicks with the mouse captured (pointer lock) on the cabin door and the rover.
