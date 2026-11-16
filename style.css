@@ -22,3 +22,20 @@ canvas {
   background: rgba(40, 24, 14, 0.6);
   pointer-events: none;
 }
+
+/* Desktop pointer: a small plus at the centre of the view, where clicks land. */
+#crosshair {
+  position: fixed;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  pointer-events: none;
+  background:
+    linear-gradient(#fff, #fff) center / 2px 100% no-repeat,
+    linear-gradient(#fff, #fff) center / 100% 2px no-repeat;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.95));
+  opacity: 0.9;
+}
