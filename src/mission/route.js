@@ -307,7 +307,9 @@ export function findPath(rg, from, to, pace) {
 // centres, one continuous line) and legs = [{ from, to, first, last }]
 // (indices into points), or { ok: false, reason } when it cannot be done.
 // Nothing is relaxed to make a route exist.
-export function planRoute(rg, anchors, pace, { maxSnapM = 30 } = {}) {
+// MINERALS W3 HOOK: the snap distance by name, so mineralRoute.js uses the same one.
+export const DEFAULT_MAX_SNAP_M = 30;
+export function planRoute(rg, anchors, pace, { maxSnapM = DEFAULT_MAX_SNAP_M } = {}) {
   const first = nearestInMask(rg, rg.walkable, anchors[0].x, anchors[0].z, maxSnapM);
   if (!first) {
     return { ok: false, reason: `no ground at or below ${rg.slopeLimitDeg} degrees within ${maxSnapM} m of ${anchors[0].id}` };

@@ -487,18 +487,22 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
   const holoPoint = (x, z, liftM, target) => target.set(x * holoScale, (grid.sample(x, z) - grid.min) * holoY + liftM, z * holoScale);
 
   const scratch = new THREE.Vector3();
-  const routePoints = data.route.points;
-  const dots = [];
-  let along = ROUTE_DOT_EVERY_M;
-  for (let i = 0; i < routePoints.length; i++) {
-    if (i > 0) along += Math.hypot(routePoints[i][0] - routePoints[i - 1][0], routePoints[i][1] - routePoints[i - 1][1]);
-    if (along < ROUTE_DOT_EVERY_M) continue;
-    along = 0;
-    holoPoint(routePoints[i][0], routePoints[i][1], 0.012, scratch);
-    dots.push(scratch.x, scratch.y, scratch.z);
-  }
+  // MINERALS HOOK: the dots are built by a function so they can follow a route
+  // that was re-planned through mineral deposits (cabin.setHologramRoute).
+  const routeDotPositions = (routePoints) => {
+    const dots = [];
+    let along = ROUTE_DOT_EVERY_M;
+    for (let i = 0; i < routePoints.length; i++) {
+      if (i > 0) along += Math.hypot(routePoints[i][0] - routePoints[i - 1][0], routePoints[i][1] - routePoints[i - 1][1]);
+      if (along < ROUTE_DOT_EVERY_M) continue;
+      along = 0;
+      holoPoint(routePoints[i][0], routePoints[i][1], 0.012, scratch);
+      dots.push(scratch.x, scratch.y, scratch.z);
+    }
+    return new THREE.Float32BufferAttribute(dots, 3);
+  };
   const routeDots = new THREE.Points(
-    new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(dots, 3)),
+    new THREE.BufferGeometry().setAttribute('position', routeDotPositions(data.route.points)),
     new THREE.PointsMaterial({ color: PALETTE.routeBlueLight, size: 0.011, sizeAttenuation: true, fog: false, toneMapped: false }),
   );
   routeDots.name = 'cabin-hologram-route';
@@ -837,11 +841,16 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
     ctx.fillStyle = THEME.text;
     fitText(ctx, 'AIRLOCK', 36, 84, 54, 440, { weight: 'bold' });
     ctx.fillStyle = open ? css(GREEN) : THEME.red;
-    const status = open ? 'READY' : 'LOCKED';
+    // MINERALS HOOK (cabinMinerals.js): cabin.doorGuard() returns null or { block, hint }.
+    const gate = open && cabin.doorGuard ? cabin.doorGuard(false) : null;
+    const status = open ? (gate && gate.block ? 'WAITING' : 'READY') : 'LOCKED';
     fitText(ctx, status, 36, 150, 44, 440, { weight: 'bold' });
     ctx.fillStyle = THEME.dim;
-    const hint = open ? 'Point + trigger, click, or B' : 'Opens on arrival';
-    fitText(ctx, hint, 36, 208, 30, 440, { minPx: 22 });
+    const hint = gate && gate.hint ? gate.hint : open ? 'Point + trigger, click, or B' : 'Opens on arrival';
+    if (gate && gate.hint) {
+      setFont(ctx, 26);
+      drawParagraph(ctx, hint, 36, 194, 440, 30, 2);
+    } else fitText(ctx, hint, 36, 208, 30, 440, { minPx: 22 });
     doorSign.region('door', 0, 0, doorSign.widthPx, doorSign.heightPx, () => cabin.doorAction('sign'), { hover: open });
     doorSign.end();
     shownText.door = `AIRLOCK\n${status}\n${hint}`;
@@ -1183,6 +1192,13 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
     headingDeg,
     floorY,
     onChange: null,
+    doorGuard: null, // MINERALS HOOK: set by cabinMinerals.js
+    // MINERALS HOOK: the hologram's blue dots follow a re-planned route.
+    setHologramRoute(points) {
+      routeDots.geometry.dispose();
+      routeDots.geometry = new THREE.BufferGeometry().setAttribute('position', routeDotPositions(points));
+    },
+    refreshDoorSign: () => drawDoorSign(), // MINERALS HOOK: redraw the door sign when the guard's answer changes
     get inside() {
       return state.inside;
     },
@@ -1248,6 +1264,13 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
       if (!state.inside) return false;
       if (state.phase !== 'arrived' && state.phase !== 'debrief') {
         state.doorRefused++; // locked: red light
+        return false;
+      }
+      // MINERALS HOOK (cabinMinerals.js): the door waits until three deposits are confirmed on the wall map.
+      const gate = cabin.doorGuard ? cabin.doorGuard(true) : null;
+      if (gate && gate.block) {
+        state.doorRefused++;
+        drawDoorSign();
         return false;
       }
       state.inside = false;

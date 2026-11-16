@@ -16,8 +16,8 @@ RULES FOR THIS CONTENT
 7. Cabin, tablet and all UI are procedural; hide the terrain while in the cabin and the cabin while outside.
 
 FACT BANK
-F1 Perseverance landed in Jezero crater on 18 Feb 2021 (Octavia E. Butler Landing site). Team Protikriti
-   data-sources.md.
+F1 Perseverance landed in Jezero crater on 18 Feb 2021 (Octavia E. Butler Landing site).
+   docs/data-sources.md.
 F2 The delta is a massive fan-shaped collection of rocks and sediment on the crater's western edge, built
    where a river met a crater lake billions of years ago; it rises about 40 m (130 ft) above the crater
    floor. JPL news, 19 Apr 2022.
@@ -31,8 +31,8 @@ F5 At the delta front the team found sandstones, siltstones and boulder-rich con
    deposited underwater by density currents in a distal deltaic setting; boulder-rich conglomerates are
    consistent with high-energy floods. Williams et al., LPSC 2023 abstract (NTRS 20230000588).
 F6 One sol = 24 h 39 min 35 s (NASA says about 24.6 h). NASA GISS Mars24 / NASA Science.
-F7 EVA precedent: NASA's Artemis EVA concept of operations (EVA-EXP-0075, 2020) is quoted in Team Protikriti
-   docs as up to 8 h, up to 2 km from the lander, terrain up to 20 degrees (Moon). Original not opened.
+F7 EVA precedent: NASA's Artemis EVA concept of operations (EVA-EXP-0075, 2020) is quoted in the project
+   docs as up to 8 h, up to 2 km from the lander, terrain up to 20 degrees (Moon). Original not opened.
    Our 8 h EVA, 1 h reserve, 15 degree slope limit, 3.3 km/h pace and 20 min per stop are ASSUMPTIONS.
 F8 Astronauts can make connections, solve problems quickly and apply context in real time. Space Apps
    challenge text.

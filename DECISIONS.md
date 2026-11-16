@@ -473,3 +473,138 @@ later work must know:
 - Mission file changes: `cards.S5A.positionNote` (sols computed from the cores, shown on the stop
   5 card), `layers[samples].retrieved`, and the panorama credit wording.
 - F7's source is cited directly as EVA-EXP-0075 because the document was opened and checked.
+
+## Minerals: data (2026-11-15)
+
+### Why `data/sites/jezero/crism.bin` and `crism.json` were deleted
+
+Both files came from `pipeline/src/marsmap/crism.py` and were wrong:
+
+- `jezeroFinal.tif` is a 3-band RGB picture of a classified map. `crism.py` treated it as a
+  one-band raster of class codes, so it read only the red band.
+- It then turned those numbers into "chemical hazard weights". The weights were made up. The
+  source map says which minerals are probably at the surface; it says nothing about danger.
+- `crism.json` also credited the map to the wrong authors.
+
+Nothing in `src/`, `index.html`, `tools/` or `web/` loaded either file (checked with a search
+for "crism", any case, before deleting). `crism.py` stays in place with a comment at the top
+that points here; `pipeline/src/marsmap/__main__.py` still has its `crism` command. Still
+describing the old output, and not changed here: `DATA_NOTES.md` (the `sites/` row and one
+later line), `docs/data-sources.md` ("CRISM Jezero Mineralogy" section and the "Zones" row),
+and older entries in `PROGRESS.md`.
+
+### Source
+
+Parente, Saranathan and Itoh 2021, "Map of the dominant mineralogy over and around the Mars2020
+landing ellipse with correspondent spectral signatures", Zenodo doi:10.5281/zenodo.5575824,
+CC BY 4.0. File `jezeroFinal.tif`, fetched 2026-11-15 from
+`https://zenodo.org/api/records/5575824/files/jezeroFinal.tif/content` (1,389,881 bytes). Made
+from MRO CRISM data (NASA/JPL-Caltech/JHUAPL). The GeoTIFF is not kept in the repo.
+
+### Method (`tools/build_minerals.py` -> `data/walk/jezero_delta/minerals.json`)
+
+Run: `uv run --python 3.12 --with numpy --with pillow tools/build_minerals.py`
+
+- Georeferencing is read from the GeoTIFF tags, and the tool stops if they differ from the
+  brief: 614 x 751 px, 36 m, equirectangular, sphere radius 3,396,190 m, centre longitude and
+  latitude 0, pixel-is-area, one tiepoint at the top-left corner. So lon = x / R and
+  lat = y / R (radians). No shift or nudge is applied.
+- Every pixel is snapped to the nearest of the 20 key colours or black (straight-line distance
+  in RGB). Black is "Unclassified". Only 18.8% of the patch pixels are an exact key colour; the
+  rest are blends from resampling.
+- Crop: the pixels whose centres fall inside the walk patch bounds in `walk.json`. That is
+  59 x 55 = 3,245 pixels. `grid` gives the outer edges of that window.
+- Groups as in the brief. Group colours are a design choice: flat, and the tool stops if any
+  is within 80 RGB units of another group, the slope amber `#ffb020`, the slope red `#e5412d`,
+  the route blue `#2f7fe6` or the rover-path orange `#ff8a1f`. Medium confidence uses the same
+  colour mixed half-way to white.
+- Deposits: 4-connected patches of one mineral group among the cropped pixels (Unclassified is
+  not a deposit), ranked by area. Position: the patch centroid snapped to the nearest pixel
+  centre in the patch. A patch is kept only if the 2 m terrain slope at that point is under
+  15 degrees and the point is at least 80 m from the patch edge and from every deposit already
+  kept. The largest usable patch of each group is taken first, then the rest by area, 10 in
+  all. This tool does not run the route planner: whether a deposit can be reached on foot is
+  checked by the route code.
+- `area_ha` is pixel count x 36 m x 36 m, as the brief says. The 36 m is in map metres; with
+  this projection a pixel is about 34 m wide east-west on the ground at this latitude, so the
+  areas read about 5% high. Not corrected.
+- Stations: the class of the pixel that contains each of START and S2 to S5 (positions from
+  `data/mission/jezero_delta.json`).
+
+### Results against the brief's expected results
+
+| | Expected | Built |
+|---|---|---|
+| Pixels in the patch | 3,304 | 3,245 (59 x 55) |
+| Olivine + clay | about 62% | 63.11% (Olivine + smectite alone 61.66%) |
+| Unclassified | about 20% | 19.60% |
+| Carbonate | about 6% | 5.86% |
+| Kaolinite | about 5% | 5.08% |
+| Fe/Mg-smectite | about 4% | 4.07% |
+| The rest | about 4% or less | Low-Ca pyroxene 2.00%, Olivine/smectite + 2.2 um 1.45%, High-Ca pyroxene 0.15%, Olivine 0.09%, Mg-smectite 2 0.03% |
+| Stations | all five on Olivine + smectite | START, S3, S4, S5 on Olivine + smectite (medium); S2 on Unclassified |
+| Carbonate patch | about 3.5 ha near 77.3887 E 18.4708 N | exists: 27 px, 3.50 ha, centroid 77.38871 E 18.47082 N; not in the deposit list (below) |
+
+Mismatches:
+
+1. **Pixel count, 3,245 not 3,304.** The patch spans columns 175.93 to 234.51 and rows 406.82
+   to 462.38 of the image. Counting pixel centres inside gives 59 x 55. Rounding the window's
+   start and its length separately (as raster libraries do) gives 59 x 56 = 3,304, which takes
+   in row 462, whose centre is about 4 m south of the patch. So the brief's count used that
+   rule. The percentages agree either way. Treating the tiepoint as a pixel centre would also
+   give 3,304, but then the carbonate patch moves to 77.38841 E 18.47113 N, which does not
+   match the brief; the tags say pixel-is-area and that is what is used.
+2. **S2 is on Unclassified.** Its pixel has colour (39, 19, 17): the Olivine + smectite
+   medium colour (153, 77, 68) at a quarter brightness, a resampling blend with black. By
+   distance it is nearer black, so it snaps to Unclassified. S2 is also about 2 m from that
+   pixel's west edge. Not changed. The app must therefore not say that every station sits on
+   the same group.
+3. **The 3.5 ha carbonate patch is not a candidate.** Its snapped position (x -92.9, z 68.4)
+   is 77 m from D1 (x -161.2, z 32.4), under the 80 m spacing. D1 is the single connected
+   Olivine + clay patch that covers most of the area (1,916 px). Setting `MIN_SEPARATION_M`
+   to 72 (two pixels) in the tool would bring it in; left at 80 for the team to decide.
+
+Deposit list as built (D1 to D10): Olivine + clay 248.31 ha; Clay 16.59 ha; Carbonate 8.29 ha;
+Carbonate 1.68 ha; Carbonate 1.04 ha; Clay 1.04 ha; Olivine + clay 0.91 ha; Olivine + clay
+0.91 ha; Carbonate 0.78 ha; Volcanic 0.39 ha. Positions and confidence are in `minerals.json`.
+D1 and D2 touch the edge of the cropped window (`touchesCropEdge`) and may continue
+outside it; their area is the part inside the patch.
+
+SOURCE NEEDED: none in the data file. It carries only the brief's facts M1 to M5.
+
+## Minerals: integration (2026-11-15)
+
+- **Where the parts are installed.** `installMineralObjective` in `src/mission/mission.js` calls
+  the five parts in order (shared state, layer, route, cabin wall map and shelf, sampling).
+  `main.js` calls it after `createCabin` and waits for it before the cabin draws its first card,
+  so the "Orbit says" line is on the briefing from the start. Each part is installed on its own:
+  one that fails is logged and the rest, and the station walk, still work. Without
+  `minerals.json` nothing is added and the door is not held.
+- **"Orbit says" line.** The data puts START, S3, S4 and S5 on Olivine + clay and S2 on
+  Unclassified, so the stations do not all agree. Each station card therefore carries its own
+  line and the briefing carries START's. Nothing was changed to make them agree.
+- **The 3.5 ha carbonate patch is not a candidate.** It exists in the data where the brief says,
+  but its marker point is 77 m from D1's and the tool's spacing rule is 80 m. The rule was left
+  as it is; see "Minerals: data" above.
+- **Door.** The airlock stays shut until three deposits are confirmed. With `?skipcabin=1` the
+  walk starts outside on the stored route with no deposits; going back in and out again then
+  needs three picks on the wall map.
+- **Cabin hologram.** Its blue dots are rebuilt from the confirmed route
+  (`cabin.setHologramRoute`), so they match the "planned ... km route" text beside them.
+- **HUD flash.** Collecting shows "SAMPLE COLLECTED (<group>, unconfirmed)", a new flash kind,
+  because the existing "SAMPLE SEALED" belongs to the cored samples and nothing is cored here.
+- **Debrief card.** The mineral debrief is a second panel above the existing debrief console
+  (raised to 2.1 m so it does not cover the console's top row). The existing console and replay
+  card are unchanged.
+- **Next spot.** The hyperspeed transit only runs from the cabin's briefing, so GO reloads the
+  page with `?site=<id>`. `jezero` and `gale` load as terrain walks with no mission; the other
+  sites in `data/sites.json` are listed as not yet available.
+- **Deposit stop.** 20 minutes per deposit stop is an ASSUMPTION from the brief; it is shown on
+  the wall map and added to the tablet's assumptions.
+- **Alignment.** No shift is applied anywhere. The check and its limits are in `PROGRESS.md`.
+- **SOURCE NEEDED lines: none.** Every sentence shown comes from the brief or from
+  `minerals.json`. No text says why any mineral matters.
+- **Old documents.** The CRISM section of `docs/data-sources.md` and one line of `DATA_NOTES.md`
+  now say the old files were deleted. `docs/data-sources.md` line 307 still credits "Salvatore et
+  al. 2021 CRISM map" for the old zones table; it was left alone because it is an existing credit.
+  `pipeline/src/marsmap/__main__.py` still has its `crism` command.

@@ -53,6 +53,7 @@ export const FLASHES = {
   SLOPE: { text: 'SLOPE CAUTION', level: 'amber' },
   SCAN: { text: 'SCAN', level: 'info' },
   SAMPLE: { text: 'SAMPLE SEALED', level: 'info' },
+  COLLECT: { text: 'SAMPLE COLLECTED', level: 'info' }, // minerals: a container picked up at a deposit, nothing is cored
   RETURN: { text: 'RETURN', level: 'amber' },
 };
 

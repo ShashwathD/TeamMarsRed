@@ -260,6 +260,20 @@ export function createLayers({ data, patch, routeGrid, terrain, surround, traver
     },
     toggle: (id) => layers.set(id, !layers.get(id)),
 
+    // MINERALS HOOK (w5): a module adds a layer that is not in the mission
+    // file (src/mission/minerals.js: the CRISM minerals). It gets a chip, a
+    // place in the credits (data.layers) and the same set / get / toggle.
+    onRegister: null, // (layer) => {} after a layer was added
+    register(layer, { on = false, can = true, apply }) {
+      if (!layer || !layer.id || controls[layer.id]) return false;
+      controls[layer.id] = { on: !!on, can: !!can, apply };
+      layers.list.push(layer);
+      if (!data.layers.includes(layer)) data.layers.push(layer);
+      if (can) apply(!!on);
+      if (layers.onRegister) layers.onRegister(layer);
+      return true;
+    },
+
     // Is the layer drawn in the world right now? (On, and not waiting for its station.)
     inWorld: (id) => layers.get(id) && !waiting.has(id),
     // The station that turns the layer on in the world, while it has not yet; else null.

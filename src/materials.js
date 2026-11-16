@@ -57,6 +57,9 @@ export function createWalkMaterial(photo, knee = 0.55) {
 
   const empty = new THREE.DataTexture(new Uint8Array([0]), 1, 1, THREE.RedFormat, THREE.UnsignedByteType);
   empty.needsUpdate = true;
+  // MINERALS HOOK (w5): a 1 x 1 clear map until src/mission/minerals.js sets the real one.
+  const emptyMinerals = new THREE.DataTexture(new Uint8Array(4), 1, 1, THREE.RGBAFormat, THREE.UnsignedByteType);
+  emptyMinerals.needsUpdate = true;
   const uniforms = {
     uPhotoOn: { value: 1 },
     uPlainColor: { value: MARS_SURFACE.clone() },
@@ -67,6 +70,11 @@ export function createWalkMaterial(photo, knee = 0.55) {
     uSlopeAmber: { value: new THREE.Color(0xffb020) },
     uSlopeRed: { value: new THREE.Color(0xe5412d) },
     uSlopeAlpha: { value: 0.62 },
+    // MINERALS HOOK (w5): CRISM mineral-group overlay (not a hazard layer).
+    uMineralOn: { value: 0 },
+    uMineralMap: { value: emptyMinerals },
+    uMineralUv: { value: new THREE.Vector4(1, 1, 0, 0) }, // patch uv * xy + zw = mineral-grid uv
+    uMineralAlpha: { value: 0.55 },
   };
 
   material.onBeforeCompile = (shader) => {
@@ -83,7 +91,11 @@ export function createWalkMaterial(photo, knee = 0.55) {
         uniform vec2 uSlopeBands;
         uniform vec3 uSlopeAmber;
         uniform vec3 uSlopeRed;
-        uniform float uSlopeAlpha;`,
+        uniform float uSlopeAlpha;
+        uniform float uMineralOn;
+        uniform sampler2D uMineralMap;
+        uniform vec4 uMineralUv;
+        uniform float uMineralAlpha;`,
       )
       .replace(
         '#include <map_fragment>',
@@ -103,6 +115,17 @@ export function createWalkMaterial(photo, knee = 0.55) {
           float hazard = smoothstep(uSlopeBands.x - 0.25, uSlopeBands.x + 0.25, slopeDeg);
           vec3 hazardColor = mix(uSlopeAmber, uSlopeRed, smoothstep(uSlopeBands.y - 0.25, uSlopeBands.y + 0.25, slopeDeg));
           gl_FragColor.rgb = mix(gl_FragColor.rgb, hazardColor, hazard * uSlopeAlpha * uSlopeOn);
+        }
+        if (uMineralOn > 0.0) { // MINERALS HOOK (w5)
+          #ifdef USE_MAP
+            vec2 mineralUv = vMapUv * uMineralUv.xy + uMineralUv.zw;
+          #else
+            vec2 mineralUv = vUv * uMineralUv.xy + uMineralUv.zw;
+          #endif
+          if (mineralUv.x >= 0.0 && mineralUv.x <= 1.0 && mineralUv.y >= 0.0 && mineralUv.y <= 1.0) {
+            vec4 mineral = texture2D(uMineralMap, mineralUv);
+            gl_FragColor.rgb = mix(gl_FragColor.rgb, mineral.rgb, mineral.a * uMineralAlpha * uMineralOn);
+          }
         }`,
       );
   };
@@ -131,6 +154,19 @@ export function createWalkMaterial(photo, knee = 0.55) {
       uniforms.uSlopeBands.value.set(amberFromDeg, redAboveDeg);
       if (amber !== undefined) uniforms.uSlopeAmber.value.set(amber);
       if (red !== undefined) uniforms.uSlopeRed.value.set(red);
+    },
+    // MINERALS HOOK (w5). texture: RGBA, one texel per CRISM pixel, alpha 0 =
+    // nothing drawn, row 0 = south; uvTransform [sx, sy, ox, oy]: patch uv to its uv.
+    get mineralsOn() {
+      return uniforms.uMineralOn.value > 0;
+    },
+    setMinerals(on) {
+      uniforms.uMineralOn.value = on ? 1 : 0;
+    },
+    setMineralMap(texture, { uvTransform, alpha }) {
+      uniforms.uMineralMap.value = texture;
+      uniforms.uMineralUv.value.set(uvTransform[0], uvTransform[1], uvTransform[2], uvTransform[3]);
+      if (alpha !== undefined) uniforms.uMineralAlpha.value = alpha;
     },
   };
   return material;
