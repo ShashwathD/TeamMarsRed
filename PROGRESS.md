@@ -971,3 +971,25 @@ Not verified:
   headless clicks were made with the pointer free.
 - The other VR regressions (B2 to B7 reviewer VR tests, credits VR) were not rerun after these
   changes; the VR end-to-end run, the merge VR walk-through and the step-5 VR regression were.
+
+## Mission B9: final check
+
+Run against the committed tree (794fefd, nothing uncommitted), headless Chromium with software
+rendering; VR is the iwer emulator. Nothing ran on a real Quest 3S.
+
+- End-to-end playthrough, desktop, DIRECT at stop 2: 59 of 59 checks, no console errors or
+  warnings. Debrief 8669.3 s and 3435.7 m, the same as the test's own sum; 4 of 4 stops, 5/5
+  cores, Field Check 3/4, slope warnings amber 1, red 1.
+- End-to-end playthrough, emulated VR, PLANNED at stop 2: 58 of 58 checks (the DIRECT-only
+  caution check does not apply), no console errors or warnings. Debrief 8685.1 s and 3437.3 m
+  against an own sum of 8684.3 s and 3437.3 m (the 0.8 s is the PLANNED surcharge, as before);
+  4 of 4 stops, 5/5 cores, Field Check 3/4, slope warnings amber 1, red 0.
+- Subpath check: the 2,961 files `git ls-files` lists (97 MB) copied to a folder named
+  `TeamMarsRed` and served from its parent, as GitHub Pages does. Both `/TeamMarsRed/` and
+  `/TeamMarsRed/?skipcabin=1` reached ready and drew 40 frames with 39 responses each, no 404,
+  no failed request, no console error or warning, and no request outside the subpath. The only
+  outside addresses are the two Three.js 0.170.0 files from the import map.
+
+Not covered by the subpath check: files loaded later in a walk (far terrain chunks, the
+panoramas). No address in `index.html` or `src/` starts with `/`, and the server log of the
+check shows no 404.
