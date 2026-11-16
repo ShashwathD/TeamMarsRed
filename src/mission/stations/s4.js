@@ -1,4 +1,5 @@
 import { PALETTE, lowPolyMaterial, mergeParts } from '../lowpoly.js';
+import { nearestOnLine } from '../route.js';
 
 // Station S4, BEREA: FIRST CORE (brief: S4).
 //
@@ -15,7 +16,10 @@ import { PALETTE, lowPolyMaterial, mergeParts } from '../lowpoly.js';
 // true), so it never starts a teleport.
 
 const ROCK_FROM_SITE_M = 4.1; // outside the ring of stakes round the site (2.6 m), on the side the route arrives from
-const ROCK_TURN_DEG = 40; // off the route itself
+// The rock is turned off the arrival direction by the first of these angles
+// that keeps it clear of both the blue route and the rover's orange path.
+const ROCK_TURNS_DEG = [60, -60, 80, -80, 100, -100, 120, -120, 140, -140, 160, -160, 180];
+const ROCK_CLEAR_M = 2.2; // rock, loose stones and holder reach about 1.3 m; the lines are up to 1.5 m wide
 const ROCK_TOP_M = 0.58; // flat top of the rock above its base point
 const ROCK_HIT_RADIUS_M = 0.95; // generous: pointing anywhere at the rock counts
 const HOLDER_X_M = 1.15; // holder beside the rock (in the site group's own axes)
@@ -73,9 +77,23 @@ export function createStation(ctx) {
     ax = 1;
     az = 0;
   }
-  const turn = THREE.MathUtils.degToRad(ROCK_TURN_DEG);
-  const dx = ax * Math.cos(turn) - az * Math.sin(turn);
-  const dz = ax * Math.sin(turn) + az * Math.cos(turn);
+  const lines = [routePoints, ...data.traverse.lines.map((line) => line.points)];
+  let dx = ax;
+  let dz = az;
+  let clearM = -1;
+  for (const deg of ROCK_TURNS_DEG) {
+    const turn = THREE.MathUtils.degToRad(deg);
+    const tx = ax * Math.cos(turn) - az * Math.sin(turn);
+    const tz = ax * Math.sin(turn) + az * Math.cos(turn);
+    let clear = Infinity;
+    for (const line of lines) clear = Math.min(clear, nearestOnLine(line, station.x + tx * ROCK_FROM_SITE_M, station.z + tz * ROCK_FROM_SITE_M).distanceM);
+    if (clear > clearM) {
+      clearM = clear;
+      dx = tx;
+      dz = tz;
+    }
+    if (clear >= ROCK_CLEAR_M) break;
+  }
   const rockX = station.x + dx * ROCK_FROM_SITE_M;
   const rockZ = station.z + dz * ROCK_FROM_SITE_M;
   let rockY = patch.groundY(rockX, rockZ);
@@ -235,7 +253,7 @@ export function createStation(ctx) {
     state,
     core,
     tube,
-    rock: { x: rockX, y: rockY, z: rockZ, topM: ROCK_TOP_M, sphere: rockSphere, mesh: fixed, mark, hole, seal },
+    rock: { x: rockX, y: rockY, z: rockZ, clearM, topM: ROCK_TOP_M, sphere: rockSphere, mesh: fixed, mark, hole, seal },
     cards: () => cards,
 
     onEnter() {

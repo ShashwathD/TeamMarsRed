@@ -203,7 +203,7 @@ export function createStation(ctx) {
       done = true;
       ctx.log({
         title: 'Rover path scanned',
-        lines: [`Perseverance drove here between sols ${solMin} and ${solMax}.`, 'Source: NASA/JPL MMGIS traverse.'],
+        lines: [`Rover drove in this patch, sols ${solMin} to ${solMax}.`, 'Source: NASA/JPL MMGIS traverse.'],
         station: station.id,
       });
       ctx.done();
