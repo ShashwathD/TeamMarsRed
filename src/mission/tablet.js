@@ -87,9 +87,9 @@ const HELP = {
     ['Right trigger', 'Point and press to select or confirm. On open ground: hold to aim a teleport, release to jump.'],
     ['Right stick', 'Flick left or right for a snap turn.'],
     ['Y (left)', 'Tablet on or off. Looking down at your left forearm also lights it.'],
-    ['A', 'Scan (at a station).'],
+    ['A', 'Scan (at stops 2, 3 and 5).'],
     ['B', 'Airlock door (at the rover).'],
-    ['Right grip', 'Hold a sample tube (at a core site).'],
+    ['Right grip', 'Take or stow a sample tube (core site).'],
     ['X (left)', 'Frame time readout.'],
   ],
   desktop: [
@@ -97,9 +97,9 @@ const HELP = {
     ['W A S D', 'Walk. Hold Shift to run.'],
     ['T / right mouse', 'Hold to aim a teleport, release to jump.'],
     ['Tab or Y', 'Tablet on or off.'],
-    ['E', 'Scan (at a station).'],
+    ['E', 'Scan (at stops 2, 3 and 5).'],
     ['B', 'Airlock door (at the rover).'],
-    ['G', 'Hold a sample tube (at a core site).'],
+    ['G', 'Take or stow a sample tube (core site).'],
     ['F', 'Frame time readout.'],
   ],
 };
@@ -899,7 +899,7 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
       setFont(ctx, MIN_PX);
       const source = `Source: ${layer.source}${layer.note ? `. ${layer.note}` : ''}`;
       const lines = wrapLines(ctx, source, W - 80);
-      const drawn = drawParagraph(ctx, source, 40, lines.length > 1 ? y + 157 : y + 166, W - 80, 44, 2);
+      const drawn = drawParagraph(ctx, source, 40, lines.length > 1 ? y + 155 : y + 166, W - 80, 42, 2);
       if (drawn.clipped) state.clippedText = `layer ${layer.id}`; // for the layout check
     }
     drawPager(ctx, 'layers', state.layersPage, pages, setPage, `Missions: ${missions}`);

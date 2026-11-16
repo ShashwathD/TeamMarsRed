@@ -810,3 +810,63 @@ Not verified:
 - Walking between stops on foot: the combined test moves by tablet map jump and one direct move
   onto the stop 5 pad. Earlier steps tested walking and arc teleports separately.
 - Mouse clicks with the mouse captured (pointer lock) on the cabin door and the rover.
+
+## Mission B9 (part 2): content, layer and low-poly audit
+
+Method: one headless desktop run through the whole mission (cabin, DEPART, door, stops 2 to 5,
+Field Check, return, debrief) that saved every text canvas as an image (87 canvases: cabin
+panels in each phase, every tablet page, the five "i" lines, all credits pages, station cards,
+stand screen, HUD strip and flashes, beacon labels, signs) plus 42 scene screenshots, and a
+second shorter run after the fixes. All images were looked at. Desktop only; no emulated-VR run
+was made for this part, and nothing ran on a real headset.
+
+Content (rules 1 to 7):
+
+- Card texts S1 to S5B and the four Field Check questions match the brief; every card and the
+  debrief end with a source line; ASSUMPTION is on the S2 card, the slope chip, the cabin
+  console, the map-jump box and the credits; SIM is on the three HUD suit values and the console.
+- {braced} values: a search of `src/` for the computed numbers, core names, sols and dates found
+  none typed into shown text; they come from the mission file or are computed in the page.
+- Fixed: the notebook line of a logged core at stop 5 ended "Position approximate." and that
+  word was cut off on the tablet LOG ("... Position") and the cabin log ("Position appr...").
+  The entry is now two short lines with "approximate position" on the first; the ridge name is
+  no longer in the notebook line (it stays on the stand screen).
+- Fixed: the stand screen said "Shown in its true compass direction."; the compass check was
+  only conclusive for Wildcat Ridge, so it now says "Turned to its compass direction."
+- Fixed: the two-line source on the slope and sample-site chips touched the chip's lower edge.
+- HELP tab: scan now says "at stops 2, 3 and 5", grip says "Take or stow a sample tube".
+- No text overflowed a canvas in either run (checked by a draw-call recorder and by eye).
+
+Layer behaviour, item by item (all as the brief asks, nothing to fix): photo on, slope off with
+legend, eye icons and "i" one-liners on all five chips; rover path on the map from the start
+and on the ground (with stop dots) only from stop 3; sample markers only at the stop 4 and
+stop 5 sites, each with an APPROXIMATE POSITION sign; camera icon at stop 5 and the 360 view
+only on its pad; backdrop has no chip and is credited "always on"; missions covered listed;
+the route is not a layer.
+
+Low-poly look: cabin, console, joystick, window frame, hologram table, door and lamp, tablet
+body, HUD frame, beacons, sample markers, tubes, coring rock, tube holder, stop 2 signs, stop 5
+pad and rack, and the return rover were each looked at in screenshots and in the code (boxes,
+cylinders of 3 to 8 sides, icosahedra of detail 0 or 1, one flat-shaded material, the shared
+palette). Nothing needed changing.
+
+Credits and docs:
+
+- The app's credits gained two lines that `CREDITS.md` already had ("Mission code", "EVA
+  clock"); the two now match word for word. LAYERS is 2 chip pages + 8 credits pages.
+- README: removed "belong to later steps" / "set by later steps"; says the experience starts in
+  the cabin and that `tablet=0` leaves stop 5 unfinishable.
+- PUBLISH.md: Parts 2 and 3 now say they are for the plain viewer (`?mission=0`), since the
+  default page starts in the cabin; mission flags added to the address list; Part 4 no longer
+  says it was written before the code, and items 9 to 13 describe the controls as built (A for
+  the slope layer and DIRECT / PLANNED signs, grip pressed once not held, four grip presses at
+  the rack, Field Check opening by itself, the rover as the return marker).
+
+Known problems:
+
+- Stop 2: choosing DIRECT gives the red SLOPE CAUTION but charges no time (the straight line is
+  the quicker one); the brief says "the time cost". The card says what the planned route costs.
+- The cabin console in the briefing, transit and arrived phases is an instruction panel and has
+  no source line (it carries the ASSUMPTION and SIM note).
+- Older test scripts that expect 7 credits pages or the old notebook wording will fail.
+- PUBLISH.md Part 1 still names the branch `jezero-delta-terrain` in its push commands.

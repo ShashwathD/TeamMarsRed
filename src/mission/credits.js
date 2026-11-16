@@ -24,6 +24,7 @@ export const FIXED = {
   alwaysOn: ['backdrop'],
   software: [
     { head: 'Three.js 0.170.0', text: 'The 3D library. MIT License, copyright 2010-2024 three.js authors.' },
+    { head: 'Mission code', text: 'Written for this project. The cabin, tablet, HUD, beacons, sample tubes and every other object are built in code; no 3D model, texture, font or sound file from anyone else is loaded.' },
     {
       head: 'Data files and pipeline',
       text: "The terrain, photo, rover path, sample list and panorama files were made with the Team Protikriti project's pipeline. Its licence has not been verified.",
@@ -38,6 +39,7 @@ export const FIXED = {
   notReal: [
     { head: 'Chosen for looks', text: 'Surface colour, sky, dust haze and sun direction. The rover cabin, tablet, beacons, tubes and other objects are simple made-up models.' },
     { head: 'Simulated', text: 'Coring and the Marswalk itself.' },
+    { head: 'EVA clock', text: 'The EVA clock is charged for ground covered and for stops; it is not a real-time clock.' },
   ],
 };
 

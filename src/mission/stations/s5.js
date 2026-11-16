@@ -370,7 +370,8 @@ export function createStation(ctx) {
     const core = tube.core;
     const entry = {
       title: `Core logged: ${core.name}`,
-      lines: [`Sol ${core.sol} · ${core.lengthCm} cm · ${core.rockType} · ${core.feature}`, `Now: ${placeOf(core)} (NASA list, retrieved ${core.locationRetrieved}). Position approximate.`],
+      // Two short lines: the tablet notebook shows two lines per entry and cuts a long one, and "approximate" must not be the part that is cut.
+      lines: [`Sol ${core.sol} · ${core.lengthCm} cm · ${core.rockType} · approximate position`, `Now: ${placeOf(core)} (NASA list, retrieved ${core.locationRetrieved}).`],
       station: station.id,
     };
     if (ctx.log) ctx.log(entry);
@@ -419,7 +420,7 @@ export function createStation(ctx) {
     if (!state.layerOn) return 'Surface panoramas are switched off (tablet, LAYERS).';
     const entry = textures.get(state.view);
     if (entry && entry.failed) return 'The panorama could not be loaded.';
-    if (state.immersive) return state.shown === state.view ? 'Shown in its true compass direction.' : 'Loading the other ridge...';
+    if (state.immersive) return state.shown === state.view ? 'Turned to its compass direction.' : 'Loading the other ridge...';
     if (entry && entry.loading) return 'Loading the panorama...';
     return 'Stand on the pad to open the 360 view.';
   }

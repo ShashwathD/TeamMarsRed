@@ -106,8 +106,9 @@ Screenshots of the delta and where they were taken: `docs/screenshots/`.
 - `tools/build_mission.py` - builds `data/mission/<site>.json`; plans the route through `tools/route_cli.mjs` (needs Node.js)
 
 On the delta patch the mission layer is loaded: a blue route ribbon, the rover's real path in
-orange, and a beacon at each station. The walk then starts on the route, 6 m from the start marker. Add
-`mission=0` to the address for the plain terrain viewer.
+orange (on the ground from stop 3 on), and a beacon at each station. The experience starts in the
+rover cabin; the walk outside then starts on the route, 6 m from the start marker (`skipcabin=1`
+starts there directly). Add `mission=0` to the address for the plain terrain viewer.
 
 The tablet: `Tab` or `Y` on desktop (it slides up and frees the mouse; click its buttons); in VR
 it is worn on the left forearm and lights with `Y` on the left controller or by looking down at
@@ -118,9 +119,10 @@ walking time of the route distance. LAYERS has one chip per layer (photo, slope 
 "i" gives a one-line explanation, and the pages after the chips are the CREDITS: missions
 covered, every data layer (the always-on distant terrain too), the fact sources, what is assumed
 or simulated, the software and the AI-assistance note. The rover path is on the map from the start
-but appears on the ground only when stop 3 turns it on. HELP lists the controls. `E`, `B` and `G` (scan, airlock door, hold a tube) are
-listed there but belong to later steps. Add `tablet=0` to the address to leave the tablet out
-(the controller buttons then all toggle the frame time, as in the plain viewer).
+but appears on the ground only when stop 3 turns it on. HELP lists the controls, including `E`, `B` and `G` (scan, airlock door, take or stow a sample
+tube). After the four cores at stop 5 are logged the tablet also shows the Field Check. Add `tablet=0` to the address to leave the tablet out
+(the controller buttons then all toggle the frame time, as in the plain viewer; the Field Check
+needs the tablet, so stop 5 cannot be finished in that mode).
 
 Local frame: x = east, z = south, y = up, in metres, origin at the patch centre
 (y = 0 is the ground height at the centre).
@@ -132,7 +134,7 @@ time left, time to walk home, margin, heading, slope underfoot and distance to t
 are real; suit oxygen, battery and temperature are cosmetic and tagged SIM. The clock does not
 count real seconds: it is charged the walking time of the ground covered (walking, running and
 teleporting cost the same per metre) and 20 minutes per station. See DECISIONS.md, "Mission B3".
-For later steps: `mission.clock` (`charge`, `chargeStop`, `moveCharged`, `routeSeconds`,
+For tests: `mission.clock` (`charge`, `chargeStop`, `moveCharged`, `routeSeconds`,
 `homeFrom`, `running`, `status`), `mission.hud.flash('SLOPE' | 'SCAN' | 'SAMPLE' | 'RETURN',
 { level })`, `mission.hud.setVisible`, `mission.setNextStation(id)`, `mission.telemetry`.
 
@@ -142,8 +144,7 @@ For later steps: `mission.clock` (`charge`, `chargeStop`, `moveCharged`, `routeS
 Since B4: `setLayer` also takes `'photo' | 'slope' | 'samples' | 'panoramas' | 'backdrop'`;
 `layerSet` (`list`, `credits`, `get`, `set`, `toggle`, `state()`, `sites`, `inWorld(id)`,
 `waitingFor(id)`, `reveal('traverse')` for stop 3), `log` (`add({ title, lines,
-station })`, `entries`), `travelTo(x, z, headingDeg)`, `actions` (`scan`, `door`: set by later
-steps), `ui` (the panel manager) and `tablet` (`setOpen`, `toggle`, `setTab`, `askJump(id)`,
+station })`, `entries`), `travelTo(x, z, headingDeg)`, `actions` (`scan`, `door`), `ui` (the panel manager) and `tablet` (`setOpen`, `toggle`, `setTab`, `askJump(id)`,
 `confirmJump()`, `cancelJump()`, `cost(id)`, `targets`, `state`, `panel`, `stats()`,
 `credits`, `showCredits()`).
 

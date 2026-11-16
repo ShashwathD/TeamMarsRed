@@ -119,9 +119,7 @@ These are ours, not NASA's, and are labelled ASSUMPTION or SIM wherever the app 
 - **Three.js 0.170.0**. The 3D library. MIT License, copyright 2010-2024 three.js authors. Loaded from the jsDelivr network
   (<https://cdn.jsdelivr.net/npm/three@0.170.0/>). Licence text: <https://cdn.jsdelivr.net/npm/three@0.170.0/LICENSE>. The viewer also uses
   its `VRButton` add-on, same licence.
-- **Mission code** (`src/mission/`, `tools/build_mission.py`): written for this project. The
-  cabin, tablet, HUD, beacons, sample tubes and every other object are built in code (procedural);
-  no 3D model, texture, font or sound file from anyone else is loaded.
+- **Mission code** (`src/mission/`, `tools/build_mission.py`). As the app's credits say: Written for this project. The cabin, tablet, HUD, beacons, sample tubes and every other object are built in code; no 3D model, texture, font or sound file from anyone else is loaded.
 - **Terrain data files and the data pipeline** (`data/` and `pipeline/`)
   come from the open source **Team Protikriti** project. The pipeline (Python package `marsmap`)
   read the USGS files above and wrote the `dem.bin`, `walk.json`, `grid.bin` and photo tiles. The
@@ -150,4 +148,4 @@ For the mission, as the app's credits say:
 
 - Chosen for looks: Surface colour, sky, dust haze and sun direction. The rover cabin, tablet, beacons, tubes and other objects are simple made-up models.
 - Simulated: Coring and the Marswalk itself.
-- The EVA clock is charged for ground covered and for stops; it is not a real-time clock.
+- EVA clock: The EVA clock is charged for ground covered and for stops; it is not a real-time clock.
