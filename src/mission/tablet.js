@@ -347,6 +347,7 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
     logPage: 0,
     helpDevice: 'desktop',
     dialog: null, // { id, seconds, metres, x, z } while the confirm box is up
+    modal: null, // { draw(ctx, kit) }: a full-screen page drawn over the tabs (the Field Check)
     mount: null, // 'desktop' | 'arm' | 'float'
     pinned: false, // VR: lit with Y (stays lit when looking away)
     gaze: false, // VR: lit by looking at it
@@ -962,6 +963,13 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
     const ctx = panel.begin();
     ctx.fillStyle = THEME.bg;
     ctx.fillRect(0, 0, W, H);
+    if (state.modal) {
+      // Full-screen page owned by another module (the Field Check), in place of the tabs.
+      state.modal.draw(ctx, { panel, W, H, MIN_PX, button, state });
+      panel.end();
+      dirty = false;
+      return;
+    }
     drawTabs(ctx);
     if (state.tab === 'MAP') drawMap(ctx);
     else if (state.tab === 'LOG') drawLog(ctx);
@@ -1065,6 +1073,16 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
     setTab(tab) {
       if (!TABS.includes(tab) || tab === state.tab) return;
       state.tab = tab;
+      dirty = true;
+    },
+    // A full-screen page over the tabs, or null to take it away. modal = { draw(ctx, kit) }.
+    setModal(modal) {
+      state.modal = modal || null;
+      if (state.modal) state.dialog = null;
+      dirty = true;
+    },
+    // Ask for the screen to be drawn again (for whoever owns the modal).
+    redraw() {
       dirty = true;
     },
     setHelpDevice(device) {
@@ -1202,7 +1220,7 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
       if (dirty) draw();
 
       // You-are-here: a mesh over the map, so walking and turning redraw nothing.
-      const showMarker = state.tab === 'MAP' && !state.dialog;
+      const showMarker = state.tab === 'MAP' && !state.dialog && !state.modal;
       marker.visible = showMarker;
       if (showMarker) {
         const px = Math.min(Math.max(mapX(viewer.x), MAP_X), MAP_X + MAP_S);

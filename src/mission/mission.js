@@ -234,6 +234,7 @@ export async function createMission({ site, patch, scene, renderer, camera, play
     progress,
     slopeWarnings,
     layerSet,
+    world: { terrain, surround }, // the ground meshes, for steps that hide them (panorama view, cabin)
     log,
     actions,
     ui: null,
