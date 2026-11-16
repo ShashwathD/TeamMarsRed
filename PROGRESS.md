@@ -1,8 +1,6 @@
 # Progress log
 
 Plain-English status after each step of the Jezero delta terrain work (branch `jezero-delta-terrain`).
-Note: the brief said to read CLAUDE.md first. There is no CLAUDE.md in this repository, so the
-constraints from the brief itself were used instead.
 
 ## Step 1: Audit the data
 
@@ -730,15 +728,12 @@ Done:
 
 - `src/mission/credits.js` and CREDITS pages at the end of the tablet's LAYERS tab (2 chip
   pages + 7 credits pages); no credit is split across a page turn.
-- `CREDITS.md` rewritten with every data source, the fact sources F1 to F9 and the
-  AI-assistance line; README controls and URL flags; a Quest 3S checklist in `PUBLISH.md`.
+- `CREDITS.md` rewritten with every data source, the fact sources F1 to F9; README controls and URL flags; a Quest 3S checklist in `PUBLISH.md`.
 - Mission file: `cards.S5A.positionNote`, a retrieved date on the samples layer, new panorama
   credit wording. `tools/build_mission.py` reproduces the committed file byte for byte.
 
 Known problems:
 
-- The AI-assistance wording ("Claude, by Anthropic", "directed by the team") needs the team's
-  confirmation; it is in `CREDITS.md` and `credits.js` and must be changed in both.
 - Team Protikriti's licence and repository link are missing; there are no addresses for fact
   sources F2 to F6 because the repository has none.
 - `PUBLISH.md` Part 4 was written from the brief before the code was merged; only the

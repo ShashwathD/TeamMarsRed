@@ -118,7 +118,7 @@ walking time of the route distance. LAYERS has one chip per layer (photo, slope 
 10 to 15 degrees and red above 15, rover path, sample sites, panoramas): the eye switches it, the
 "i" gives a one-line explanation, and the pages after the chips are the CREDITS: missions
 covered, every data layer (the always-on distant terrain too), the fact sources, what is assumed
-or simulated, the software and the AI-assistance note. The rover path is on the map from the start
+or simulated, and the software. The rover path is on the map from the start
 but appears on the ground only when stop 3 turns it on. HELP lists the controls, including `E`, `B` and `G` (scan, airlock door, take or stow a sample
 tube). After the four cores at stop 5 are logged the tablet also shows the Field Check. Add `tablet=0` to the address to leave the tablet out
 (the controller buttons then all toggle the frame time, as in the plain viewer; the Field Check

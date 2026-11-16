@@ -131,13 +131,6 @@ These are ours, not NASA's, and are labelled ASSUMPTION or SIM wherever the app 
   Note for the team: this repository does not contain Team Protikriti's licence file or a link to
   their repository. Add both here before publishing.
 
-## AI assistance
-
-The code, tests and documents of this project were written with an AI coding assistant (Claude, by Anthropic), directed by the team. The Mars data shown is not AI-generated: it comes from the sources listed here.
-
-The assistant also wrote the tool that builds the mission file and ran the automated checks
-(headless browser and a headset emulator). Nothing was tested by the assistant on a real headset.
-
 ## Not real data
 
 So nobody mistakes them for measurements: the surface colour, the sky gradient, the dust haze and

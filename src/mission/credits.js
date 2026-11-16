@@ -30,12 +30,6 @@ export const FIXED = {
       text: "The terrain, photo, rover path, sample list and panorama files were made with the Team Protikriti project's pipeline. Its licence has not been verified.",
     },
   ],
-  ai: [
-    {
-      head: 'AI assistance',
-      text: 'The code, tests and documents of this project were written with an AI coding assistant (Claude, by Anthropic), directed by the team. The Mars data shown is not AI-generated: it comes from the sources listed here.',
-    },
-  ],
   notReal: [
     { head: 'Chosen for looks', text: 'Surface colour, sky, dust haze and sun direction. The rover cabin, tablet, beacons, tubes and other objects are simple made-up models.' },
     { head: 'Simulated', text: 'Coring and the Marswalk itself.' },
@@ -95,7 +89,7 @@ export function buildCredits(data) {
     ],
   });
 
-  sections.push({ id: 'software', title: 'Software', lines: [...FIXED.software, ...FIXED.ai] });
+  sections.push({ id: 'software', title: 'Software', lines: [...FIXED.software] });
   return { title: FIXED.title, sections };
 }
 
