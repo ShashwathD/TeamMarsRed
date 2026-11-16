@@ -280,10 +280,9 @@ export function createPanel({ name = 'ui-panel', widthPx, heightPx, widthM, anis
 // ---- pointers and picking ---------------------------------------------------------
 
 const CURSOR_RADIUS_M = 0.006;
-const BEAM_WIDTH_M = 0.003;
 
 // One manager per scene. Pointer 0 is the desktop mouse; 1 and 2 are the VR
-// controllers (they draw a thin beam to the panel they point at).
+// controllers (their long rays are drawn by xr.js; mission.js ends them at the panel hit).
 export function createUi({ scene, pointerCount = 3 }) {
   const group = new THREE.Group();
   group.name = 'mission-ui-pointers';
@@ -291,8 +290,6 @@ export function createUi({ scene, pointerCount = 3 }) {
 
   const cursorGeometry = new THREE.CircleGeometry(CURSOR_RADIUS_M, 8);
   const cursorMaterial = new THREE.MeshBasicMaterial({ color: PALETTE.offWhite, depthTest: false, depthWrite: false, transparent: true, fog: false, toneMapped: false });
-  const beamGeometry = new THREE.BoxGeometry(BEAM_WIDTH_M, BEAM_WIDTH_M, 1).translate(0, 0, 0.5); // from the origin along +z: lookAt aims +z
-  const beamMaterial = new THREE.MeshBasicMaterial({ color: PALETTE.routeBlueLight, transparent: true, opacity: 0.7, depthWrite: false, fog: false, toneMapped: false });
 
   const pointers = [];
   for (let i = 0; i < pointerCount; i++) {
@@ -301,14 +298,6 @@ export function createUi({ scene, pointerCount = 3 }) {
     cursor.renderOrder = 980;
     cursor.visible = false;
     group.add(cursor);
-    let beam = null;
-    if (i > 0) {
-      beam = new THREE.Mesh(beamGeometry, beamMaterial);
-      beam.name = `ui-beam-${i}`;
-      beam.renderOrder = 979;
-      beam.visible = false;
-      group.add(beam);
-    }
     pointers.push({
       index: i,
       active: false,
@@ -317,7 +306,6 @@ export function createUi({ scene, pointerCount = 3 }) {
       direction: new THREE.Vector3(0, 0, -1),
       hit: { panel: null, region: null, px: 0, py: 0, distance: Infinity, point: new THREE.Vector3() },
       cursor,
-      beam,
     });
   }
 
@@ -400,7 +388,7 @@ export function createUi({ scene, pointerCount = 3 }) {
       return pointer.active && pick(pointer) ? pointer.hit : null;
     },
 
-    // Once per frame: hover light, cursor dots and beams. No allocations.
+    // Once per frame: hover light and cursor dots. No allocations.
     update() {
       for (let i = 0; i < ui.panels.length; i++) ui.panels[i].pendingHover = null;
       for (let i = 0; i < pointers.length; i++) {
@@ -408,18 +396,12 @@ export function createUi({ scene, pointerCount = 3 }) {
         const on = pointer.active && pick(pointer);
         const hit = pointer.hit;
         pointer.cursor.visible = on && pointer.showCursor;
-        if (pointer.beam) pointer.beam.visible = on;
         if (!on) continue;
         if (hit.region && hit.region.hover) hit.panel.pendingHover = hit.region;
         if (pointer.showCursor) {
           hit.panel.mesh.getWorldQuaternion(quaternion);
           pointer.cursor.quaternion.copy(quaternion);
           pointer.cursor.position.copy(hit.point);
-        }
-        if (pointer.beam) {
-          pointer.beam.position.copy(pointer.origin);
-          pointer.beam.lookAt(hit.point);
-          pointer.beam.scale.z = hit.distance;
         }
       }
       for (let i = 0; i < ui.panels.length; i++) ui.panels[i].setHighlight(ui.panels[i].pendingHover);

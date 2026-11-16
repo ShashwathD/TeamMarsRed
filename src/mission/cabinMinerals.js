@@ -461,7 +461,7 @@ export function installCabinMinerals(mission, deps = {}) {
           ? 'Confirmed. The airlock is behind you. CHANGE lets you pick again before leaving.'
           : state.picks.length === needed
             ? 'Press CONFIRM to set the route.'
-            : 'Point + trigger, or click, on a pin or a row to pick it.';
+            : 'Trigger (click) on a pin or a row to pick it.';
     const shownHint = hint || defaultHint;
     ctx.fillStyle = hint ? THEME.amber : THEME.dim;
     setFont(ctx, 28, hint ? 'bold' : 'normal');

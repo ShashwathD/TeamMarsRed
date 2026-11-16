@@ -198,7 +198,7 @@ async function start() {
     frameMeter.tick(performance.now());
     const dt = Math.min(clock.getDelta(), 0.1);
     player.update(dt); // keyboard and mouse; does nothing in VR
-    xr.update(); // teleport, snap turn; does nothing on desktop
+    xr.update(); // sticks, pointer rays, teleport aim; on desktop only the T teleport aim
     // Level of detail follows the head, wherever the rig was just moved to
     // (in VR the head can be away from the rig origin).
     player.headPosition(viewer);
@@ -210,9 +210,11 @@ async function start() {
   });
 
   setStatus(
-    `${site}: click to look around, WASD to walk, Shift to run, hold T (or right mouse) to aim a teleport and release to jump, Esc to release the mouse, F for frame time. ` +
-      (mission && mission.tablet ? 'Tab (or Y) for the tablet: map, notebook, layers, help. ' : '') +
-      'In VR: hold trigger to aim, release to teleport; thumbstick left/right to turn' +
+    // Controls: the headset control first, the desktop one in parentheses.
+    `${site}: ` +
+      (mission && mission.tablet ? 'Y (Tab) for the tablet: map, notebook, layers, help. ' : '') +
+      'X (F) for frame time. Trigger (click) to select; hold the trigger (T or right mouse) to aim a teleport, release to jump. ' +
+      'Left stick to move, press it in and hold to sprint (WASD, Shift). Right stick to turn (click the view, then the mouse; Esc frees it)' +
       (photo ? '' : ' (no photo for this patch)') +
       surroundNote +
       missionNote,

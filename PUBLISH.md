@@ -93,10 +93,12 @@ to the address for it.
 Controls in VR (plain viewer, `?mission=0`):
 
 - Teleport: hold the trigger on either controller, aim the arc at the ground, let go.
-- Turn: push either thumbstick left or right. Each push turns 45 degrees.
+- Walk: left stick (forward, back and sideways). Press the stick in and hold to sprint.
+- Turn: right stick left or right.
 - Frame time: press A, B, X or Y. A small panel appears on the left controller. Press again to hide.
 
-There is no smooth walking in VR, on purpose.
+Stick walking and turning were added on the last evening and have not been tried in a headset.
+If they make you queasy, use teleport only and report it.
 
 Useful addresses:
 
@@ -209,7 +211,7 @@ headset emulator, which cannot judge size, comfort, legibility or frame rate.
 Do Part 3 first. Then do these in order, standing, on the default page. With the mission loaded
 the buttons are: right trigger = select, confirm and teleport; right grip = hold a tube; `A` =
 scan; `B` = airlock door; left `Y` = tablet; left `X` = frame-time readout (not A, B or Y as in
-Part 3); right thumbstick = snap turn. To skip the cabin while re-checking outdoor items, add
+Part 3); left stick = walk and strafe, pressed in and held = sprint; right stick = turn. To skip the cabin while re-checking outdoor items, add
 `?skipcabin=1` to the address.
 
 For each item write down pass or fail, what you saw, and both frame-time numbers.
@@ -224,7 +226,7 @@ For each item write down pass or fail, what you saw, and both frame-time numbers
   visible inside the cabin, only the window view. The cabin never moves.
 - Failure looks like: the floor at knee or chest height; a dollhouse or a hangar (everything too
   small or too big); your head through the ceiling; terrain poking through the floor or walls; the
-  blue route or beacons visible inside the cabin; the HUD strip or EVA clock running while you are
+  blue route or beacons visible inside the cabin; the helmet HUD or EVA clock running while you are
   still inside.
 
 ### 2. Briefing and DEPART
@@ -245,19 +247,21 @@ For each item write down pass or fail, what you saw, and both frame-time numbers
 - How to check: after the light is green, point at the door and press the trigger. Reload and try
   again with `B` instead.
 - Pass: both ways open the door and put you outside on the ground near the start marker, facing
-  along the blue route. Once outside, the cabin is gone and the terrain, route and HUD strip are
+  along the blue route. Once outside, the cabin is gone and the terrain, route and helmet HUD are
   there. The EVA clock starts at 8:00.
 - Failure looks like: the door opens before the light is green; you arrive floating, buried, or
   inside the start marker's pillar; the cabin is still visible outside (walls or floor hanging
   in the landscape); a long black pause; the clock has already lost time.
 
-### 4. Teleport and snap turn outside
+### 4. Teleport, walking and turning outside
 
 - How to check: as Part 3 item 3, but along the blue route. Teleport about ten times along it,
-  including across the place where the route doubles back near stop 5. Snap turn a few times.
+  including across the place where the route doubles back near stop 5. Turn with the right stick a few times. Walk with the left stick, then press it in
+  and hold to sprint.
 - Pass: you land on the ground each time. The blue ribbon lies on the ground with chevrons moving
-  the way you should walk. Each jump takes a little time off EVA LEFT on the HUD strip (walking
-  time for that distance); a snap turn or moving your head takes none.
+  the way you should walk. Each jump takes a little time off EVA LEFT on the HUD (walking
+  time for that distance), and so does ground covered with the stick; turning or moving your head
+  takes none.
 - Failure looks like: the ribbon floating well above the ground or cutting under it; ribbon and
   ground flickering against each other; chevrons pointing against the route; the clock not
   changing after a jump, or changing when you only turn your head.
@@ -281,18 +285,22 @@ For each item write down pass or fail, what you saw, and both frame-time numbers
 - Also check: the frame-time readout (`X`) also sits on the left controller. If it covers the
   tablet, report it.
 
-### 6. HUD strip comfort
+### 6. Helmet HUD comfort
 
-- How to check: stand and look ahead, then slightly down. Turn your head slowly left and right,
-  then turn your body a half turn. Walk two real steps. Keep it in view for a full minute.
-- Pass: a soft strip floats in front of and below your view, about a metre away. It stays still
-  for small head turns and drifts round to follow after a large turn. It shows EVA LEFT, WALK HOME,
-  MARGIN, heading, slope, distance to the next stop, and three values marked SIM (oxygen, battery,
-  temperature). Nothing is stuck to your face except a short message when something happens.
-- Failure looks like: the strip is glued to your head and moves with every twitch; it lags far
-  behind or jumps; it sits in the middle of your view or so low you must bow to read it; its text
-  is too small or shimmers; it is cut through by the ground or by the tablet; the SIM values lack
-  the SIM tag; it makes you queasy (stop and report).
+- How to check: stand and look ahead. Turn your head slowly left and right, up and down. Walk two
+  real steps. Keep it in view for a full minute. Then press `Y` twice so the tablet goes dark.
+- Pass: four small panels sit in the corners of your view like a helmet display, about 1.3 m
+  away and in focus, moving with your head: top left EVA LEFT and MARGIN; top right HEADING and
+  NEXT with its distance; bottom left SLOPE and WALK HOME; bottom right three values marked SIM
+  (oxygen, battery, temperature). Thin brackets mark the corners. A short message shows at the top
+  centre when something happens. All four panels can be read by moving only your eyes, and none
+  is cut off by the edge of the lenses. With the tablet off, its dark screen on your forearm reads
+  "Press Y (Tab) to turn the tablet on" in grey; pointing at the dark screen and pressing the
+  trigger does nothing to the tablet.
+- Failure looks like: a panel cut off by the lens edge or needing a head turn to read; panels in
+  the middle of your view; text too small, blurred or shimmering; the HUD seen double or at a
+  different depth from what is behind it in a way that strains your eyes; the SIM values lack
+  the SIM tag; the tablet vanishing from your arm when off; it makes you queasy (stop and report).
 
 ### 7. Map pin teleport with time cost
 
@@ -419,7 +427,7 @@ For each item write down pass or fail, what you saw, and both frame-time numbers
 ### 15. No flicker
 
 - How to check: as Part 3 item 6, and also look at: the blue ribbon and the orange rover path
-  where they lie on the ground and where they cross each other; the slope overlay; the HUD strip
+  where they lie on the ground and where they cross each other; the slope overlay; the helmet HUD
   against the ground; the tablet screen and the card above it; beacon labels far away; the
   panorama bubble's edge; the cabin window.
 - Pass: every surface and every piece of text is steady in both eyes.
@@ -429,8 +437,8 @@ For each item write down pass or fail, what you saw, and both frame-time numbers
 
 ### Low-poly look (while you are there)
 
-All built objects (cabin, console, joystick, window frame, hologram table, door, tablet body, HUD
-frame, beacons, markers, tubes, the coring rock, the return marker) should look chunky and
+All built objects (cabin, console, joystick, window frame, hologram table, door, tablet body,
+beacons, markers, tubes, the coring rock, the return marker) should look chunky and
 faceted, in a small palette of Mars oranges, off-white, dark slate, one teal/blue accent, amber
 and red. Report anything smooth, glossy or finely detailed that looks out of place. The terrain,
 the photo and the panoramas are real data and should not look stylised.

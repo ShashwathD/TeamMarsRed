@@ -10,8 +10,8 @@ import * as THREE from 'three';
 // is then the centre of the user's real floor ('local-floor' space) and the
 // user may be standing somewhere else in the room, so the VR code moves the
 // rig with moveHeadTo / turnAboutHead / followGround, which all work from
-// where the head actually is. Keyboard and mouse are ignored while in VR
-// (no smooth movement in the headset).
+// where the head actually is. Keyboard and mouse are ignored while in VR;
+// the thumbsticks walk and turn there (xr.js), at the walk / run speeds below.
 //
 // Heading is in degrees clockwise from north: 0 = north (-z), 90 = east (+x).
 

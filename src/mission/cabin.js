@@ -687,7 +687,7 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
         button(ctx, card, 'depart', W - 48 - 380, y, 380, 112, 'DEPART', () => cabin.depart());
         ctx.fillStyle = THEME.dim;
         setFont(ctx, 28);
-        const hint = 'Review the route, then point at DEPART and pull the trigger (or click).';
+        const hint = 'Review the route, then point at DEPART and press the trigger (click).';
         drawParagraph(ctx, hint, 48, y + 40, W - 96 - 420, 38);
         say('DEPART');
         say(hint);
@@ -699,7 +699,7 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
         say(status);
         ctx.fillStyle = THEME.dim;
         setFont(ctx, 28);
-        const hint = transit ? 'The airlock stays locked until the light turns green.' : 'The airlock light is green: open the door behind you (point + trigger, or B).';
+        const hint = transit ? 'The airlock stays locked until the light turns green.' : 'The airlock light is green: open the door behind you with the trigger (click) or B (B).';
         drawParagraph(ctx, hint, 430, y + 30, W - 478, 38);
         say(hint);
       }
@@ -756,10 +756,10 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
       say(title);
       const steps =
         phase === 'briefing'
-          ? ['1  Read the briefing on the hologram table.', '2  Press DEPART: point + trigger, or click.', '3  When the airlock light turns green, open the door behind you.']
+          ? ['1  Read the briefing on the hologram table.', '2  Press DEPART: point + trigger (click).', '3  When the airlock light turns green, open the door behind you.']
           : phase === 'transit'
             ? ['The cabin does not move: watch the window.', 'Airlock locked (red light).']
-            : ['Airlock light is green.', 'Open the door behind you: point + trigger at it, or press B.', 'Your walk starts just outside.'];
+            : ['Airlock light is green.', 'Open the door behind you: trigger (click) on it, or B (B).', 'Your walk starts just outside.'];
       ctx.fillStyle = THEME.text;
       setFont(ctx, 40);
       let y = 156;
@@ -846,7 +846,7 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
     const status = open ? (gate && gate.block ? 'WAITING' : 'READY') : 'LOCKED';
     fitText(ctx, status, 36, 150, 44, 440, { weight: 'bold' });
     ctx.fillStyle = THEME.dim;
-    const hint = gate && gate.hint ? gate.hint : open ? 'Point + trigger, click, or B' : 'Opens on arrival';
+    const hint = gate && gate.hint ? gate.hint : open ? 'Trigger (click), or B (B)' : 'Opens on arrival';
     if (gate && gate.hint) {
       setFont(ctx, 26);
       drawParagraph(ctx, hint, 36, 194, 440, 30, 2);
@@ -863,7 +863,7 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
     ctx.textAlign = 'center';
     fitText(ctx, 'RETURN TO ROVER', 256, 88, 46, 460, { weight: 'bold', minPx: 30 });
     ctx.fillStyle = THEME.dim;
-    fitText(ctx, 'Point + trigger (click), or come close and press B', 256, 144, 26, 460, { minPx: 18 });
+    fitText(ctx, 'Trigger (click), or come close and press B (B)', 256, 144, 26, 460, { minPx: 18 });
     ctx.textAlign = 'left';
     markerSign.region('return', 0, 0, markerSign.widthPx, markerSign.heightPx, () => cabin.returnToRover('sign'));
     markerSign.end();
@@ -1070,6 +1070,7 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
   const hi = [0, 0, 0];
   const o = [0, 0, 0];
   const d = [0, 0, 0];
+  let hitNear = 0; // distance along the ray of the last box hit
   function rayHitsBox(object, maxM) {
     object.updateWorldMatrix(true, false);
     inverse.copy(object.matrixWorld).invert();
@@ -1090,7 +1091,19 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
       far = Math.min(far, Math.max(t0, t1));
       if (near > far) return false;
     }
+    hitNear = near;
     return true;
+  }
+  // CONTROLS C1 HOOK: the long controller rays (xr.js) end on the airlock door / the return marker.
+  function shortenRays() {
+    if (!xr || !xr.setRayLength) return;
+    for (let i = 0; i < 2; i++) {
+      const controller = xr.controllers[i];
+      if (!controller.userData.handedness) continue;
+      rayOrigin.setFromMatrixPosition(controller.matrixWorld);
+      rayDirection.set(0, 0, -1).transformDirection(controller.matrixWorld);
+      if (state.inside ? rayHitsDoor() : rayHitsMarker()) xr.setRayLength(i, hitNear);
+    }
   }
   function rayHitsDoor() {
     lo[0] = -DOOR.halfW;
@@ -1136,6 +1149,9 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
       rayDirection.set(0, 0, -1).transformDirection(controller.matrixWorld);
       return pick();
     };
+    // CONTROLS C1 HOOK: no stick walking inside the cabin (the headset user stands on the cabin's spot).
+    const previousMove = xr.hooks.move;
+    xr.hooks.move = () => !state.inside && (previousMove ? previousMove() !== false : true);
     const previousAim = xr.hooks.desktopAim;
     xr.hooks.desktopAim = () => state.inside || (previousAim ? !!previousAim() : false);
     if (!mission.tablet) {
@@ -1342,6 +1358,7 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
     // position of the head. No allocations.
     update(dt, timeS, viewer) {
       const presenting = renderer.xr.isPresenting;
+      if (presenting) shortenRays();
       if (presenting !== wasPresenting) {
         wasPresenting = presenting;
         // Entering VR inside the cabin: the headset may be anywhere in the

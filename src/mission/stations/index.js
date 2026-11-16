@@ -112,7 +112,7 @@ function placeholderStation(ctx) {
   const station = ctx.station;
   const cards = cardsFromData(ctx.mission, station);
   let done = false;
-  const todo = 'The activity for this stop is not built yet. Press A (E on a keyboard) to log the visit and move on.';
+  const todo = 'The activity for this stop is not built yet. Press A (E) to log the visit and move on.';
   return {
     id: station.id,
     title: station.title,
@@ -373,7 +373,7 @@ export async function createStations({ mission, scene, camera, renderer, player 
       const width = Math.min(0.84 * halfW, (0.9 * halfH * W) / H);
       const scale = width / CARD_W_M;
       mesh.scale.setScalar(scale);
-      mesh.position.set(halfW - width / 2 - 0.025 * halfW, halfH * 0.72 - (CARD_H_M * scale) / 2, -distance);
+      mesh.position.set(halfW - width / 2 - 0.025 * halfW, halfH * 0.56 - (CARD_H_M * scale) / 2, -distance); // top edge below the top-right HUD panel
     } else if (cardMount === 'arm') {
       mesh.visible = has;
     } else {

@@ -461,7 +461,7 @@ export function createStation(ctx) {
 
     // The four cores.
     g.fillStyle = THEME.accent;
-    fitText(g, 'Cores sealed here: take a tube to log it (grip, G or click)', 32, 388, 42, W - 64, { weight: 'bold', minPx: 34 });
+    fitText(g, 'Cores sealed here: take a tube with the grip (G or click) to log it', 32, 388, 42, W - 64, { weight: 'bold', minPx: 34 });
     tubes.forEach((tube, k) => {
       const core = tube.core;
       const y = 412 + k * 122;
@@ -531,7 +531,7 @@ export function createStation(ctx) {
       },
       {
         title: 'What to do here',
-        body: `Stand on the pad for the 360 view; A (or E) switches between ${panoramas.map((p) => `${p.feature} (sol ${p.sol})`).join(' and ')}. Take each tube with the grip (G or click) to log it. Then take the Field Check on the tablet.`,
+        body: `Stand on the pad for the 360 view; A (E) switches between ${panoramas.map((p) => `${p.feature} (sol ${p.sol})`).join(' and ')}. Take each tube with the grip (G or click) to log it. Then take the Field Check on the tablet.`,
         source: `Panoramas: ${panoramas.length ? panoramas[0].credit : ''}`,
       },
     ];
@@ -548,7 +548,7 @@ export function createStation(ctx) {
     if (state.done) promptText = 'Stop complete.';
     else if (logged === tubes.length) promptText = fieldCheck.state.open ? 'Take the Field Check on the tablet.' : 'Select FIELD CHECK on the stand screen: it opens on the tablet.'; // after LATER the way back to it is the stand
     else if (!state.immersive && state.layerOn) promptText = `Stand on the pad for the 360 view. Cores logged: ${logged} of ${tubes.length}.`;
-    else promptText = `Take a tube to log it (grip, G or click). Cores logged: ${logged} of ${tubes.length}.`;
+    else promptText = `Take a tube with the grip (G or click) to log it. Cores logged: ${logged} of ${tubes.length}.`;
     return promptText;
   }
 

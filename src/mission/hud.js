@@ -1,45 +1,47 @@
 import * as THREE from 'three';
-import { PALETTE, css, lowPolyMaterial, mergeParts } from './lowpoly.js';
+import { PALETTE, css } from './lowpoly.js';
 
-// Suit HUD (brief: SYSTEMS / HUD).
+// Suit HUD (team controls note: a helmet display, spread around the view).
 //
-// 1. THE STRIP: one wide, low panel floating about 1.15 m in front of the
-//    explorer and below eye level. It is an object in the scene, not a child
-//    of the camera. It stays where it is while the head turns a little; when
-//    the head has turned away by more than START_FOLLOW_DEG it glides back in
-//    front (it "trails" the turn) and it is never left more than MAX_LAG_DEG
-//    behind. It does not follow looking up or down.
-// 2. FLASHES: a short word ("SLOPE CAUTION", "SCAN", "SAMPLE SEALED",
-//    "RETURN") near the top of the view for about 2.5 s. This is the only
-//    thing fixed to the head, and only while it shows.
+// Everything here is a child of the camera, HUD_DISTANCE_M in front of the
+// eyes, so it moves with the helmet:
+//   TOP LEFT      EVA time left, margin
+//   TOP RIGHT     heading, next stop and its distance
+//   BOTTOM LEFT   slope underfoot, walk-home time
+//   BOTTOM RIGHT  suit oxygen, battery, temperature (tagged SIM: cosmetic)
+//   TOP CENTRE    flashes ("SLOPE CAUTION", "SCAN", "SAMPLE SEALED",
+//                 "RETURN", ...) for about 2.5 s
+//   CORNERS       thin visor brackets
+// In a headset the panels sit inside the central 70 degrees of the view; on
+// the desktop the same layout is fitted to the window.
 //
-// Both are canvas textures. The strip's canvas is drawn again only when a
-// value it shows has changed, and at most once every REDRAW_MIN_S; the flash
+// Each panel has its own small canvas texture, drawn again only when a value
+// ON THAT PANEL has changed, and at most once every REDRAW_MIN_S; the flash
 // canvas only when a flash starts. Nothing is drawn or allocated on an
 // ordinary frame.
 //
-// Values tagged SIM on the strip (suit oxygen, battery, temperature) are
-// cosmetic: they are not data and not measured (brief, content rule 4).
+// Values tagged SIM (suit oxygen, battery, temperature) are cosmetic: they are
+// not data and not measured (brief, content rule 4).
 
-const STRIP_DISTANCE_M = 1.15;
-const STRIP_BELOW_DEG = 24; // below eye level
-const STRIP_W_M = 1.24;
-const STRIP_H_M = 0.13;
-const STRIP_CANVAS_W = 2400; // same shape as the strip: 1 px is about 0.5 mm
-const STRIP_CANVAS_H = 252;
-const START_FOLLOW_DEG = 28; // the strip starts to re-centre when the head has turned this far from it
-const STOP_FOLLOW_DEG = 1.5; // ... and stops when it is this close again
-const MAX_LAG_DEG = 55; // it is never left farther behind than this
-const FOLLOW_RATE = 4; // per second (exponential approach)
-const POSITION_RATE = 10; // per second: how fast it follows the head's position
-const MAX_POSITION_LAG_M = 0.1; // the strip's anchor is never farther than this from the head (walking, running, teleport)
+const HUD_DISTANCE_M = 1.3;
+const PANEL_W_M = 0.4;
+const PANEL_H_M = 0.12;
+const PANEL_CANVAS_W = 640;
+const PANEL_CANVAS_H = 192;
+// Headset layout (metres at HUD_DISTANCE_M): the outer edges are 28 degrees
+// to the side, 18 up and 20 down.
+const VR_X_M = 0.5;
+const VR_TOP_M = 0.36;
+const VR_BOTTOM_M = -0.41;
+const BRACKET_GAP_M = 0.03; // from the panels out to the visor brackets
+const BRACKET_ARM_M = 0.1;
+const BRACKET_THICK_M = 0.006;
 const REDRAW_MIN_S = 0.2;
 
-const FLASH_W_M = 0.46;
-const FLASH_H_M = 0.094;
+const FLASH_W_M = 0.5;
+const FLASH_H_M = 0.102;
 const FLASH_CANVAS_W = 1024;
 const FLASH_CANVAS_H = 208;
-const FLASH_POSITION = [0, 0.3, -0.95]; // in the camera's frame: about 17 degrees above the view centre
 const FLASH_IN_S = 0.15;
 const FLASH_HOLD_S = 1.9;
 const FLASH_OUT_S = 0.5;
@@ -66,20 +68,6 @@ function clockText(seconds) {
   return seconds < 0 && minutes > 0 ? `-${text}` : text;
 }
 
-function stripFrameGeometry() {
-  const hex = (radius, depth) => new THREE.CylinderGeometry(radius, radius, depth, 6).rotateX(Math.PI / 2);
-  const railW = STRIP_W_M + 0.06;
-  const capX = STRIP_W_M / 2 + 0.075;
-  return mergeParts([
-    { geometry: new THREE.BoxGeometry(railW, 0.016, 0.03), color: PALETTE.slate, y: STRIP_H_M / 2 + 0.008, z: -0.012 },
-    { geometry: new THREE.BoxGeometry(railW, 0.016, 0.03), color: PALETTE.slate, y: -STRIP_H_M / 2 - 0.008, z: -0.012 },
-    { geometry: hex(0.092, 0.036), color: PALETTE.slate, x: -capX, z: -0.012 },
-    { geometry: hex(0.092, 0.036), color: PALETTE.slate, x: capX, z: -0.012 },
-    { geometry: hex(0.05, 0.02), color: PALETTE.teal, x: -capX, z: 0.012 },
-    { geometry: hex(0.05, 0.02), color: PALETTE.marsOrange, x: capX, z: 0.012 },
-  ]);
-}
-
 // Panel with cut corners: unit height, `aspect` wide, centred; uv from position.
 function chamferedPanelGeometry(aspect, cut) {
   const x = aspect / 2;
@@ -104,45 +92,58 @@ function chamferedPanelGeometry(aspect, cut) {
   return geometry;
 }
 
-// Strip layout: [id, label, width in canvas px]. The three on the right are cosmetic.
-const CELLS = [
-  ['left', 'EVA LEFT', 250],
-  ['home', 'WALK HOME', 290],
-  ['margin', 'MARGIN', 250],
-  ['heading', 'HEADING', 320],
-  ['slope', 'SLOPE', 180],
-  ['next', 'NEXT', 300],
-  ['o2', 'SIM O2', 250],
-  ['battery', 'SIM BATT', 250],
-  ['temp', 'SIM TEMP', 250],
+// The four panels: where each sits (sx, sy = side of the view) and its cells
+// [label, keys of `values` it shows]. `sim` marks the cosmetic panel.
+const PANELS = [
+  { id: 'top-left', sx: -1, sy: 1, cells: ['left', 'margin'], keys: ['leftMin', 'marginMin', 'status'] },
+  { id: 'top-right', sx: 1, sy: 1, cells: ['heading', 'next'], keys: ['headingDeg', 'nextId', 'nextM'] },
+  { id: 'bottom-left', sx: -1, sy: -1, cells: ['slope', 'home'], keys: ['slopeDeg', 'slopeLevel', 'homeMin'] },
+  { id: 'bottom-right', sx: 1, sy: -1, cells: ['o2', 'battery', 'temp'], keys: ['o2', 'battery', 'tempC'], sim: true },
 ];
-const SIM_FROM = 6; // index of the first cosmetic cell
-const STRIP_PAD = (STRIP_CANVAS_W - CELLS.reduce((sum, cell) => sum + cell[2], 0)) / 2;
+const LABELS = { left: 'EVA LEFT', margin: 'MARGIN', heading: 'HEADING', next: 'NEXT', slope: 'SLOPE', home: 'WALK HOME', o2: 'SIM O2', battery: 'SIM BATT', temp: 'SIM TEMP' };
 
-export function createHud({ scene, camera, anisotropy = 4 }) {
+// renderer is optional: with it the HUD knows when a headset is presenting.
+export function createHud({ scene, camera, renderer = null, anisotropy = 4 }) {
+  void scene;
   const group = new THREE.Group();
   group.name = 'mission-hud';
-  group.rotation.order = 'YXZ';
-  scene.add(group);
+  group.position.z = -HUD_DISTANCE_M;
+  camera.add(group);
+  const content = new THREE.Group(); // panels and brackets (not the flash)
+  content.name = 'hud-content';
+  group.add(content);
 
-  // ---- strip ---------------------------------------------------------------
-  const stripCanvas = document.createElement('canvas');
-  stripCanvas.width = STRIP_CANVAS_W;
-  stripCanvas.height = STRIP_CANVAS_H;
-  const stripCtx = stripCanvas.getContext('2d');
-  const stripTexture = new THREE.CanvasTexture(stripCanvas);
-  stripTexture.colorSpace = THREE.SRGBColorSpace;
-  stripTexture.anisotropy = anisotropy;
-  const strip = new THREE.Mesh(
-    new THREE.PlaneGeometry(STRIP_W_M, STRIP_H_M),
-    new THREE.MeshBasicMaterial({ map: stripTexture, transparent: true, depthWrite: false, fog: false, toneMapped: false }),
+  // ---- panels ----------------------------------------------------------------
+  const panelGeometry = new THREE.PlaneGeometry(PANEL_W_M, PANEL_H_M);
+  const panels = PANELS.map((spec) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = PANEL_CANVAS_W;
+    canvas.height = PANEL_CANVAS_H;
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = anisotropy;
+    const mesh = new THREE.Mesh(
+      panelGeometry,
+      new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthTest: false, depthWrite: false, fog: false, toneMapped: false }),
+    );
+    mesh.name = `hud-${spec.id}`;
+    mesh.renderOrder = 950;
+    content.add(mesh);
+    return { spec, canvas, ctx: canvas.getContext('2d'), texture, mesh, sinceRedrawS: Infinity, redraws: 0 };
+  });
+
+  // ---- visor brackets: four thin corner marks, one mesh ------------------------
+  const bracketPositions = new Float32Array(8 * 6 * 3);
+  const bracketGeometry = new THREE.BufferGeometry();
+  bracketGeometry.setAttribute('position', new THREE.BufferAttribute(bracketPositions, 3));
+  const brackets = new THREE.Mesh(
+    bracketGeometry,
+    new THREE.MeshBasicMaterial({ color: PALETTE.teal, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthTest: false, depthWrite: false, fog: false, toneMapped: false }),
   );
-  strip.name = 'hud-strip';
-  strip.renderOrder = 950;
-  group.add(strip);
-  const frame = new THREE.Mesh(stripFrameGeometry(), lowPolyMaterial());
-  frame.name = 'hud-strip-frame';
-  group.add(frame);
+  brackets.name = 'hud-visor-brackets';
+  brackets.renderOrder = 949;
+  brackets.frustumCulled = false;
+  content.add(brackets);
 
   // ---- flash ---------------------------------------------------------------
   const flashCanvas = document.createElement('canvas');
@@ -158,14 +159,12 @@ export function createHud({ scene, camera, anisotropy = 4 }) {
   );
   flashMesh.name = 'hud-flash';
   flashMesh.renderOrder = 960;
-  flashMesh.scale.setScalar(FLASH_H_M);
-  flashMesh.position.fromArray(FLASH_POSITION);
   flashMesh.visible = false;
-  camera.add(flashMesh);
+  group.add(flashMesh);
 
-  // Values on the strip, already rounded to what is shown. The mission writes
-  // these every frame; the canvas is drawn again only when one differs from
-  // what is on it.
+  // Values on the HUD, already rounded to what is shown. The mission writes
+  // these every frame; a panel's canvas is drawn again only when one of ITS
+  // values differs from what is on it.
   const values = {
     leftMin: 0, // minutes, whole (may be negative)
     homeMin: 0,
@@ -180,8 +179,7 @@ export function createHud({ scene, camera, anisotropy = 4 }) {
     battery: 0, // SIM
     tempC: 0, // SIM
   };
-  const shown = { ...values, leftMin: NaN }; // NaN: nothing drawn yet
-  const keys = Object.keys(values);
+  const shown = { ...values, leftMin: NaN, headingDeg: NaN, slopeDeg: NaN, o2: NaN }; // NaN: nothing drawn yet
 
   function fitText(ctx, text, x, y, px, room, weight = 'bold') {
     ctx.font = `${weight} ${px}px ${FONT}`;
@@ -190,49 +188,145 @@ export function createHud({ scene, camera, anisotropy = 4 }) {
     ctx.fillText(text, x, y);
   }
 
-  function drawStrip() {
-    const ctx = stripCtx;
+  // Text and colour of one cell, from `values`.
+  function cellText(id) {
     const v = values;
-    ctx.clearRect(0, 0, STRIP_CANVAS_W, STRIP_CANVAS_H);
-    ctx.fillStyle = 'rgba(16, 21, 28, 0.78)';
-    ctx.fillRect(0, 0, STRIP_CANVAS_W, STRIP_CANVAS_H);
+    switch (id) {
+      case 'left': return [clockText(v.leftMin * 60), v.leftMin < 0 ? LEVEL_COLOR.red : LEVEL_COLOR.ok];
+      case 'margin': return [clockText(v.marginMin * 60), LEVEL_COLOR[v.status]];
+      case 'home': return [clockText(v.homeMin * 60), LEVEL_COLOR.ok];
+      case 'heading': {
+        const heading = ((v.headingDeg % 360) + 360) % 360;
+        return [`${COMPASS[Math.round(heading / 45) % 8]} ${heading}°`, LEVEL_COLOR.ok];
+      }
+      case 'slope': return [`${v.slopeDeg}°`, LEVEL_COLOR[v.slopeLevel]];
+      case 'next': return [v.nextId ? `${v.nextM} m` : '--', LEVEL_COLOR.ok];
+      case 'o2': return [`${v.o2}%`, LEVEL_COLOR.ok];
+      case 'battery': return [`${v.battery}%`, LEVEL_COLOR.ok];
+      default: return [`${v.tempC}°C`, LEVEL_COLOR.ok];
+    }
+  }
+
+  function drawPanel(panel) {
+    const { ctx, spec } = panel;
+    const w = PANEL_CANVAS_W;
+    const h = PANEL_CANVAS_H;
+    const cut = 44; // the corner toward the middle of the view is cut off
+    ctx.clearRect(0, 0, w, h);
+    ctx.save();
+    // Drawn for the top-left panel, mirrored for the others.
+    ctx.translate(spec.sx > 0 ? w : 0, spec.sy < 0 ? h : 0);
+    ctx.scale(spec.sx > 0 ? -1 : 1, spec.sy < 0 ? -1 : 1);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(w, 0);
+    ctx.lineTo(w, h - cut);
+    ctx.lineTo(w - cut, h);
+    ctx.lineTo(0, h);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(16, 21, 28, 0.6)';
+    ctx.fill();
+    // Edge light along the two outer sides: teal, or the worst level on this panel.
+    let edge = spec.sim ? PALETTE.marsOrange : PALETTE.teal;
+    const texts = spec.cells.map(cellText);
+    for (const [, color] of texts) {
+      if (color === PALETTE.red) edge = PALETTE.red;
+      else if (color === PALETTE.amber && edge !== PALETTE.red) edge = PALETTE.amber;
+    }
+    ctx.fillStyle = css(edge);
+    ctx.fillRect(0, 0, w, 8);
+    ctx.fillRect(0, 0, 8, h);
+    ctx.restore();
+
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'center';
-
-    const marginColor = LEVEL_COLOR[v.status];
-    const heading = ((v.headingDeg % 360) + 360) % 360;
-    const text = {
-      left: [clockText(v.leftMin * 60), v.leftMin < 0 ? LEVEL_COLOR.red : LEVEL_COLOR.ok],
-      home: [clockText(v.homeMin * 60), LEVEL_COLOR.ok],
-      margin: [clockText(v.marginMin * 60), marginColor],
-      heading: [`${COMPASS[Math.round(heading / 45) % 8]} ${heading}°`, LEVEL_COLOR.ok],
-      slope: [`${v.slopeDeg}°`, LEVEL_COLOR[v.slopeLevel]],
-      next: [v.nextId ? `${v.nextM} m` : '--', LEVEL_COLOR.ok],
-      o2: [`${v.o2}%`, LEVEL_COLOR.ok],
-      battery: [`${v.battery}%`, LEVEL_COLOR.ok],
-      temp: [`${v.tempC}°C`, LEVEL_COLOR.ok],
-    };
-
-    let x = STRIP_PAD;
-    CELLS.forEach(([id, label, width], index) => {
-      const sim = index >= SIM_FROM;
-      const centre = x + width / 2;
+    const pad = 18;
+    const cellW = (w - pad * 2) / spec.cells.length;
+    spec.cells.forEach((id, index) => {
+      const centre = pad + cellW * (index + 0.5);
       if (index > 0) {
-        // Divider; a stronger one before the cosmetic block.
-        ctx.fillStyle = index === SIM_FROM ? css(PALETTE.marsOrange) : 'rgba(239, 230, 216, 0.25)';
-        ctx.fillRect(x - 2, 34, index === SIM_FROM ? 6 : 4, STRIP_CANVAS_H - 68);
+        ctx.fillStyle = 'rgba(239, 230, 216, 0.25)';
+        ctx.fillRect(pad + cellW * index - 2, 36, 4, h - 72);
       }
-      ctx.globalAlpha = sim ? 0.8 : 1;
-      ctx.fillStyle = css(sim ? PALETTE.marsOrange : PALETTE.teal);
-      const labelText = id === 'next' && v.nextId ? `NEXT ${v.nextId}` : label;
-      fitText(ctx, labelText, centre, 74, 44, width - 26);
-      ctx.fillStyle = css(text[id][1]);
-      fitText(ctx, text[id][0], centre, 204, sim ? 92 : 116, width - 30);
-      ctx.globalAlpha = 1;
-      x += width;
+      ctx.fillStyle = css(spec.sim ? PALETTE.marsOrange : PALETTE.teal);
+      const label = id === 'next' && values.nextId ? `NEXT ${values.nextId}` : LABELS[id];
+      fitText(ctx, label, centre, 62, 36, cellW - 24);
+      ctx.fillStyle = css(texts[index][1]);
+      fitText(ctx, texts[index][0], centre, 156, spec.sim ? 74 : 92, cellW - 26);
     });
-    stripTexture.needsUpdate = true;
+    panel.texture.needsUpdate = true;
   }
+
+  // ---- layout ------------------------------------------------------------------
+  // Headset: fixed angles. Desktop: the same corners, fitted to the window.
+  const layout = { vr: null, aspect: 0, fov: 0, scale: 1, x: 0, top: 0, bottom: 0 };
+
+  function writeQuad(offset, x0, y0, x1, y1) {
+    const p = bracketPositions;
+    p[offset] = x0; p[offset + 1] = y0; p[offset + 2] = 0;
+    p[offset + 3] = x1; p[offset + 4] = y0; p[offset + 5] = 0;
+    p[offset + 6] = x1; p[offset + 7] = y1; p[offset + 8] = 0;
+    p[offset + 9] = x0; p[offset + 10] = y0; p[offset + 11] = 0;
+    p[offset + 12] = x1; p[offset + 13] = y1; p[offset + 14] = 0;
+    p[offset + 15] = x0; p[offset + 16] = y1; p[offset + 17] = 0;
+  }
+
+  function applyLayout(vr) {
+    let scale = 1;
+    let x = VR_X_M;
+    let top = VR_TOP_M;
+    let bottom = VR_BOTTOM_M;
+    let halfW = Infinity;
+    if (!vr) {
+      const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * HUD_DISTANCE_M;
+      halfW = halfH * camera.aspect;
+      scale = Math.min(1.4, Math.max(0.45, (halfW * 0.8) / PANEL_W_M), (halfH * 0.36) / PANEL_H_M);
+      const marginX = halfW * 0.035 + BRACKET_GAP_M * scale;
+      const marginY = halfH * 0.045 + BRACKET_GAP_M * scale;
+      x = Math.max(halfW - marginX - (PANEL_W_M * scale) / 2, (PANEL_W_M * scale) / 2);
+      top = halfH - marginY - (PANEL_H_M * scale) / 2 - halfH * 0.08; // clear of the status line (top left of the page)
+      bottom = -(halfH - marginY - (PANEL_H_M * scale) / 2);
+    }
+    layout.vr = vr;
+    layout.aspect = camera.aspect;
+    layout.fov = camera.fov;
+    layout.scale = scale;
+    layout.x = x;
+    layout.top = top;
+    layout.bottom = bottom;
+    for (const panel of panels) {
+      const { sx, sy } = panel.spec;
+      panel.mesh.position.set(sx * x, sy > 0 ? top : bottom, 0);
+      panel.mesh.scale.setScalar(scale);
+      // Headset: each panel is turned to face the eyes, like a curved visor.
+      panel.mesh.rotation.set(0, vr ? -Math.atan2(sx * x, HUD_DISTANCE_M) : 0, 0);
+      // Headset: drawn over everything. Desktop: the station card and the tablet
+      // (camera children, nearer than the HUD) cover it where they overlap.
+      panel.mesh.material.depthTest = !vr;
+    }
+    brackets.material.depthTest = !vr;
+    // Flash: between the two top panels when there is room, else just under them.
+    const flashH = FLASH_H_M * scale;
+    const room = x - (PANEL_W_M * scale) / 2 - 0.03 * scale;
+    flashMesh.scale.setScalar(flashH);
+    flashMesh.position.set(0, room >= (FLASH_W_M * scale) / 2 ? top : top - (PANEL_H_M * scale) / 2 - flashH / 2 - 0.03 * scale, 0);
+    // Brackets at the four outer corners.
+    const bx = x + (PANEL_W_M / 2 + BRACKET_GAP_M) * scale;
+    const arm = BRACKET_ARM_M * scale;
+    const thick = BRACKET_THICK_M * scale;
+    let offset = 0;
+    for (let i = 0; i < 4; i++) {
+      const sx = i % 2 ? 1 : -1;
+      const sy = i < 2 ? 1 : -1;
+      const cx = sx * bx;
+      const cy = (sy > 0 ? top : bottom) + sy * (PANEL_H_M / 2 + BRACKET_GAP_M) * scale;
+      writeQuad(offset, cx, cy, cx - sx * arm, cy - sy * thick);
+      writeQuad(offset + 18, cx, cy, cx - sx * thick, cy - sy * arm);
+      offset += 36;
+    }
+    bracketGeometry.attributes.position.needsUpdate = true;
+  }
+  applyLayout(false);
 
   // ---- flash drawing ---------------------------------------------------------
   const flash = { kind: null, text: '', level: '', ageS: Infinity, count: 0, history: [] };
@@ -262,27 +356,26 @@ export function createHud({ scene, camera, anisotropy = 4 }) {
     flashTexture.needsUpdate = true;
   }
 
-  // ---- lazy follow -----------------------------------------------------------
   const forward = new THREE.Vector3();
-  const anchor = new THREE.Vector3();
-  const below = THREE.MathUtils.degToRad(STRIP_BELOW_DEG);
-  const follow = { yawDeg: 0, headYawDeg: 0, lagDeg: 0, following: false, placed: false };
-  let sinceRedrawS = Infinity;
+  // headYawDeg: where the head looks, as a compass heading (the mission reads it).
+  const follow = { yawDeg: 0, headYawDeg: 0, lagDeg: 0, following: false, placed: true };
 
   const hud = {
     group,
-    strip,
-    frame,
+    content,
+    panels,
+    brackets,
+    strip: panels[0].mesh, // older name, kept for callers that look for it
+    frame: brackets,
     flashMesh,
     values,
     shown,
     follow,
-    redraws: 0, // times the strip canvas was drawn
+    layout,
+    covered: false, // set true while something fills the view (the desktop tablet): panels step aside
+    redraws: 0, // times any panel canvas was drawn
     flashRedraws: 0,
-    stripDistanceM: STRIP_DISTANCE_M,
-    stripBelowDeg: STRIP_BELOW_DEG,
-    startFollowDeg: START_FOLLOW_DEG,
-    maxLagDeg: MAX_LAG_DEG,
+    distanceM: HUD_DISTANCE_M,
     flashSeconds: FLASH_IN_S + FLASH_HOLD_S + FLASH_OUT_S,
 
     get flashState() {
@@ -290,8 +383,8 @@ export function createHud({ scene, camera, anisotropy = 4 }) {
     },
     flashHistory: flash.history, // latest 20: { kind, text, level }
 
-    // Shows a word near the top of the view for about 2.5 s.
-    // kind: 'SLOPE' | 'SCAN' | 'SAMPLE' | 'RETURN' (see FLASHES);
+    // Shows a word at the top centre of the view for about 2.5 s.
+    // kind: 'SLOPE' | 'SCAN' | 'SAMPLE' | 'COLLECT' | 'RETURN' (see FLASHES);
     // level: 'amber' | 'red' for the two cautions; detail: short text added after the word.
     flash(kind, { level, detail } = {}) {
       const spec = FLASHES[kind];
@@ -315,41 +408,24 @@ export function createHud({ scene, camera, anisotropy = 4 }) {
       if (!visible) flashMesh.visible = false;
     },
 
-    // Once per frame. head = world position of the head.
-    update(dt, head) {
-      // -- where the head looks, as a compass heading (0 = north = -z, 90 = east = +x)
+    // Once per frame. (head, the world position of the head, is no longer needed.)
+    update(dt) {
       camera.getWorldDirection(forward);
       if (Math.hypot(forward.x, forward.z) > 0.2) {
         follow.headYawDeg = THREE.MathUtils.radToDeg(Math.atan2(forward.x, -forward.z));
       }
-      if (!follow.placed) {
-        follow.yawDeg = follow.headYawDeg;
-        anchor.copy(head);
-        follow.placed = true;
-      }
-      let lag = ((follow.headYawDeg - follow.yawDeg + 540) % 360) - 180;
-      if (!follow.following && Math.abs(lag) > START_FOLLOW_DEG) follow.following = true;
-      if (follow.following) {
-        lag *= Math.exp(-FOLLOW_RATE * dt);
-        if (Math.abs(lag) < STOP_FOLLOW_DEG) follow.following = false;
-      }
-      if (lag > MAX_LAG_DEG) lag = MAX_LAG_DEG;
-      else if (lag < -MAX_LAG_DEG) lag = -MAX_LAG_DEG;
-      follow.yawDeg = follow.headYawDeg - lag;
-      follow.lagDeg = lag;
+      follow.yawDeg = follow.headYawDeg;
 
-      // -- position: follows the head softly, never more than MAX_POSITION_LAG_M behind
-      anchor.lerp(head, 1 - Math.exp(-POSITION_RATE * dt));
-      const behind = anchor.distanceTo(head);
-      if (behind > MAX_POSITION_LAG_M) anchor.lerp(head, 1 - MAX_POSITION_LAG_M / behind);
-      const yaw = THREE.MathUtils.degToRad(follow.yawDeg);
-      const out = Math.cos(below) * STRIP_DISTANCE_M;
-      group.position.set(anchor.x + Math.sin(yaw) * out, anchor.y - Math.sin(below) * STRIP_DISTANCE_M, anchor.z - Math.cos(yaw) * out);
-      group.rotation.set(-below, -yaw, 0); // faces back toward the eyes, tilted up
+      const vr = !!(renderer && renderer.xr.isPresenting);
+      if (vr !== layout.vr || (!vr && (camera.aspect !== layout.aspect || camera.fov !== layout.fov))) applyLayout(vr);
+      content.visible = !hud.covered;
 
-      // -- strip text, only when something shown has changed
-      sinceRedrawS += dt;
-      if (sinceRedrawS >= REDRAW_MIN_S) {
+      // -- panel text, only where something shown has changed
+      for (let p = 0; p < panels.length; p++) {
+        const panel = panels[p];
+        panel.sinceRedrawS += dt;
+        if (panel.sinceRedrawS < REDRAW_MIN_S) continue;
+        const keys = panel.spec.keys;
         let changed = false;
         for (let i = 0; i < keys.length; i++) {
           if (shown[keys[i]] !== values[keys[i]]) {
@@ -357,12 +433,12 @@ export function createHud({ scene, camera, anisotropy = 4 }) {
             break;
           }
         }
-        if (changed) {
-          for (let i = 0; i < keys.length; i++) shown[keys[i]] = values[keys[i]];
-          drawStrip();
-          hud.redraws++;
-          sinceRedrawS = 0;
-        }
+        if (!changed) continue;
+        for (let i = 0; i < keys.length; i++) shown[keys[i]] = values[keys[i]];
+        drawPanel(panel);
+        panel.redraws++;
+        panel.sinceRedrawS = 0;
+        hud.redraws++;
       }
 
       // -- flash fade
@@ -382,7 +458,10 @@ export function createHud({ scene, camera, anisotropy = 4 }) {
 
     stats() {
       const count = (mesh) => (mesh.geometry.index ? mesh.geometry.index.count : mesh.geometry.attributes.position.count) / 3;
-      return { triangles: count(strip) + count(frame) + count(flashMesh), drawCalls: 2 + (flashMesh.visible ? 1 : 0) };
+      return {
+        triangles: panels.length * count(panels[0].mesh) + count(brackets) + count(flashMesh),
+        drawCalls: (content.visible ? panels.length + 1 : 0) + (flashMesh.visible ? 1 : 0),
+      };
     },
   };
   return hud;

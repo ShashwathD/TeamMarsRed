@@ -84,19 +84,21 @@ const ARM_POSITION = new THREE.Vector3(0, 0, 0.25).addScaledVector(ARM_NORMAL, 0
 
 const HELP = {
   quest: [
-    ['Right trigger', 'Point and press to select or confirm. On open ground: hold to aim a teleport, release to jump.'],
-    ['Right stick', 'Flick left or right for a snap turn.'],
-    ['Y (left)', 'Tablet on or off. Looking down at your left forearm also lights it.'],
-    ['A', 'Scan (at stops 2, 3 and 5).'],
-    ['B', 'Airlock door (at the rover).'],
-    ['Right grip', 'Take or stow a sample tube (core site).'],
-    ['X (left)', 'Frame time readout.'],
+    // Headset control first, the desktop one in parentheses (team controls note).
+    ['L stick (WASD)', 'Walk and strafe. Press it in and hold to sprint (Shift).'],
+    ['R stick (mouse)', 'Turn.'],
+    ['Trigger (click)', 'Select. On open ground hold to aim a teleport, release to jump (T).'],
+    ['Y (Tab)', 'Tablet on or off.'],
+    ['A (E)', 'Scan (at stops 2, 3 and 5).'],
+    ['B (B)', 'Airlock door (at the rover).'],
+    ['Grip (G)', 'Take or stow a sample tube.'],
+    ['X (F)', 'Frame time readout.'],
   ],
   desktop: [
-    ['Mouse', 'Click the view to look around; Esc frees the mouse. Click buttons to select.'],
+    ['Mouse', 'Click the view to look; Esc frees the mouse. Click to select.'],
     ['W A S D', 'Walk. Hold Shift to run.'],
     ['T / right mouse', 'Hold to aim a teleport, release to jump.'],
-    ['Tab or Y', 'Tablet on or off.'],
+    ['Tab', 'Tablet on or off.'],
     ['E', 'Scan (at stops 2, 3 and 5).'],
     ['B', 'Airlock door (at the rover).'],
     ['G', 'Take or stow a sample tube (core site).'],
@@ -228,6 +230,32 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
   group.add(panel.mesh);
   ui.add(panel);
 
+  // Worn on the arm with the screen off: a dark screen that says how to turn it
+  // on. It is a plain mesh, not a ui panel, so it takes no trigger taps and
+  // stops no teleport. Drawn once.
+  const offCanvas = document.createElement('canvas');
+  offCanvas.width = 512;
+  offCanvas.height = Math.round((512 * SCREEN_H_M) / SCREEN_W_M);
+  {
+    const ctx = offCanvas.getContext('2d');
+    ctx.fillStyle = '#0b0f14';
+    ctx.fillRect(0, 0, offCanvas.width, offCanvas.height);
+    ctx.fillStyle = '#8a9099';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 34px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    ctx.fillText('Press Y (Tab)', offCanvas.width / 2, offCanvas.height / 2 - 24);
+    ctx.fillText('to turn the tablet on', offCanvas.width / 2, offCanvas.height / 2 + 24);
+  }
+  const offTexture = new THREE.CanvasTexture(offCanvas);
+  offTexture.colorSpace = THREE.SRGBColorSpace;
+  offTexture.anisotropy = anisotropy;
+  const offScreen = new THREE.Mesh(new THREE.PlaneGeometry(SCREEN_W_M, SCREEN_H_M), new THREE.MeshBasicMaterial({ map: offTexture, fog: false, toneMapped: false }));
+  offScreen.name = 'tablet-off-screen';
+  offScreen.position.z = 0.0002;
+  offScreen.visible = false;
+  group.add(offScreen);
+
   const marker = new THREE.Mesh(arrowGeometry(), new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, toneMapped: false }));
   marker.name = 'tablet-you-are-here';
   marker.scale.setScalar(0.0075);
@@ -348,7 +376,7 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
     layersPage: 0,
     layerInfo: null, // id of the chip that shows its one-line explanation
     logPage: 0,
-    helpDevice: 'desktop',
+    helpDevice: 'quest', // the headset list (desktop keys in brackets) is the default everywhere
     dialog: null, // { id, seconds, metres, x, z } while the confirm box is up
     modal: null, // { draw(ctx, kit) }: a full-screen page drawn over the tabs (the Field Check)
     mount: null, // 'desktop' | 'arm' | 'float'
@@ -927,9 +955,9 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
     button(ctx, 'help-quest', 16, CONTENT_Y + 4, 300, 84, 'QUEST', () => tablet.setHelpDevice('quest'), { on: state.helpDevice === 'quest' });
     button(ctx, 'help-desktop', 326, CONTENT_Y + 4, 300, 84, 'DESKTOP', () => tablet.setHelpDevice('desktop'), { on: state.helpDevice === 'desktop' });
     ctx.fillStyle = THEME.dim;
-    fitText(ctx, state.helpDevice === 'quest' ? 'Teleport and snap turn only.' : 'Keyboard and mouse.', 650, CONTENT_Y + 60, MIN_PX, W - 670, { minPx: MIN_PX });
+    fitText(ctx, state.helpDevice === 'quest' ? 'Desktop keys in brackets.' : 'Keyboard and mouse.', 650, CONTENT_Y + 60, MIN_PX, W - 670, { minPx: MIN_PX });
     const rows = HELP[state.helpDevice];
-    const keyW = 330;
+    const keyW = 370;
     let y = CONTENT_Y + 142;
     for (const [key, text] of rows) {
       ctx.fillStyle = THEME.accent;
@@ -1021,6 +1049,7 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
       group.visible = false;
     }
     panel.mesh.visible = false;
+    offScreen.visible = kind === 'arm';
   }
 
   // No left controller in VR: stand the tablet in the world in front of the explorer.
@@ -1039,6 +1068,7 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
     group,
     body,
     panel,
+    offScreen,
     marker,
     state,
     targets,
@@ -1068,7 +1098,7 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
       if (open === state.open) return state.open;
       state.open = open;
       if (open) {
-        state.helpDevice = renderer.xr.isPresenting ? 'quest' : 'desktop';
+        state.helpDevice = 'quest';
         dirty = true;
         if (state.mount === 'desktop') document.exitPointerLock?.(); // free the mouse for the buttons
         if (state.mount === 'float') placeFloating();
@@ -1261,6 +1291,7 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
         }
         group.visible = true;
         panel.mesh.visible = state.open;
+        offScreen.visible = !state.open; // dark screen: "Press Y (Tab) to turn the tablet on"
       } else {
         group.visible = state.open;
         panel.mesh.visible = state.open;

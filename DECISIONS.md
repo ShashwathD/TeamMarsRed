@@ -608,3 +608,26 @@ SOURCE NEEDED: none in the data file. It carries only the brief's facts M1 to M5
   now say the old files were deleted. `docs/data-sources.md` line 307 still credits "Salvatore et
   al. 2021 CRISM map" for the old zones table; it was left alone because it is an existing credit.
   `pipeline/src/marsmap/__main__.py` still has its `crism` command.
+
+## Controls and HUD: the team's note replaces three earlier rules (2026-11-15)
+
+At the team's request (their note of 2026-11-15), these earlier rules no longer hold:
+
+- **"Teleport only, no smooth movement"** is replaced by smooth stick movement. The left stick
+  walks and strafes relative to where the head faces; pressing it in and holding it runs. The
+  speeds are the desktop ones (3 m/s walk, 15 m/s run). Teleport with the trigger stays.
+- **"Snap turn only"** is replaced by smooth turning on the right stick, 90 degrees a second
+  about the head. The 45 degree snap turn is gone.
+- **"Nothing locked to the head"** is replaced by a head-fixed helmet HUD: four small panels
+  toward the corners of the view, 1.3 m in front of the eyes. The panels are hidden while the
+  tablet screen is lit so they do not sit over it.
+
+Also decided here:
+
+- The pointer rays on both controllers are always 30 m long and stop with a dot on a UI panel,
+  the airlock door or the return-to-rover marker. They pass through the stop 2 signs and the
+  deposit markers without a dot.
+- Stick walking is switched off inside the cabin (turning still works), like teleport.
+- Control hints name the headset control first and the desktop control in parentheses.
+- Comfort was not weighed: nobody has tried smooth movement, smooth turning or the head-fixed
+  HUD in a real headset. There is no comfort option (vignette, snap-turn switch) yet.
