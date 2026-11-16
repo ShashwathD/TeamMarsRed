@@ -7913,7 +7913,7 @@
     10,
     11
    ],
-   "credit": "NASA/JPL-Caltech, Mars 2020 Navcam, stitched by the team"
+   "credit": "NASA/JPL-Caltech, Mars 2020 Navcam raw images, stitched with Team Protikriti's pipeline (docs/data-sources.md)"
   },
   {
    "id": "26_1222",
@@ -7937,7 +7937,7 @@
     12,
     13
    ],
-   "credit": "NASA/JPL-Caltech, Mars 2020 Navcam, stitched by the team"
+   "credit": "NASA/JPL-Caltech, Mars 2020 Navcam raw images, stitched with Team Protikriti's pipeline (docs/data-sources.md)"
   }
  ],
  "computed": {
@@ -8076,7 +8076,8 @@
      "label": "Bearwallow: sample depot"
     }
    ],
-   "coreLocationsNote": "Where each tube is now, from NASA's list (retrieved 2026-09-29)"
+   "coreLocationsNote": "Where each tube is now, from NASA's list (retrieved 2026-09-29)",
+   "positionNote": "Positions are approximate (rover waypoints, sols 477 and 502)."
   },
   "S5B": {
    "title": "Igneous vs sedimentary",
@@ -8202,7 +8203,8 @@
    "mission": "Mars 2020 Perseverance",
    "instrument": "Sampling and caching system",
    "source": "NASA Mars Rock Samples",
-   "note": "Positions approximate (rover waypoint at that sol)"
+   "note": "Positions approximate (rover waypoint at that sol)",
+   "retrieved": "2026-09-29"
   },
   {
    "id": "panoramas",
