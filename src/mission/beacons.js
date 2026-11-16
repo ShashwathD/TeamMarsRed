@@ -33,7 +33,12 @@ function pillarGeometry(kind) {
     { geometry: new THREE.CylinderGeometry(0.17, 0.3, 5.0, 6), color: PALETTE.offWhite, y: 3.1 },
     { geometry: new THREE.CylinderGeometry(0.42, 0.42, 0.35, 6), color: accent, y: 2.2 },
   ];
-  if (kind === 'airlock') {
+  if (kind === 'done') {
+    // A station that has been completed: off-white collar and a flat stamp on top instead of the gem.
+    parts[2].color = PALETTE.offWhite;
+    parts.push({ geometry: new THREE.CylinderGeometry(0.95, 0.95, 0.3, 6), color: PALETTE.offWhite, y: 5.75 });
+    parts.push({ geometry: new THREE.CylinderGeometry(0.55, 0.55, 0.3, 6), color: PALETTE.teal, y: 6.05 });
+  } else if (kind === 'airlock') {
     // Start / airlock: a wide pad and a four-sided roof shape on top.
     parts.push({ geometry: new THREE.CylinderGeometry(2.2, 2.4, 0.5, 6), color: PALETTE.marsDeep, y: 0.0 });
     parts.push({ geometry: new THREE.ConeGeometry(1.0, 1.1, 4), color: accent, y: 6.05, rotY: Math.PI / 4 });
@@ -94,7 +99,7 @@ const BADGE_W = 232;
 const TEXT_LEFT = BADGE_W + 34;
 const TEXT_ROOM = CANVAS_W - TEXT_LEFT - 44;
 
-function labelTexture({ badge, name, kind, fontPx, anisotropy }) {
+function labelTexture({ badge, name, kind, fontPx, anisotropy, done = false }) {
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_W;
   canvas.height = CANVAS_H;
@@ -132,6 +137,16 @@ function labelTexture({ badge, name, kind, fontPx, anisotropy }) {
     ctx.fill();
     ctx.fillStyle = css(accent);
     ctx.fillRect(140, 132, 14, 26);
+  } else if (done) {
+    // A tick instead of the number.
+    ctx.strokeStyle = css(PALETTE.slate);
+    ctx.lineWidth = 34;
+    ctx.lineJoin = 'miter';
+    ctx.beginPath();
+    ctx.moveTo(56, 136);
+    ctx.lineTo(104, 186);
+    ctx.lineTo(182, 74);
+    ctx.stroke();
   } else {
     ctx.fillStyle = css(PALETTE.slate);
     ctx.textAlign = 'center';
@@ -176,7 +191,7 @@ export function createBeacons(patch, items, { anisotropy = 4 } = {}) {
     beacon.add(label);
 
     group.add(beacon);
-    return { ...item, y, group: beacon, pillar, label, labelTier: index % 2, labelHeightM: 0, distanceM: 0 };
+    return { ...item, y, group: beacon, pillar, label, labelTier: index % 2, labelHeightM: 0, distanceM: 0, done: false, fontPx, anisotropy };
   });
 
   // Turn each label to the viewer and size it for the distance. No allocations.
@@ -197,4 +212,20 @@ export function createBeacons(patch, items, { anisotropy = 4 } = {}) {
   }
 
   return { group, beacons, update, fontPx, pillarTopM: PILLAR_TOP_M };
+}
+
+let doneGeometry = null;
+// Marks a station beacon (an entry of createBeacons().beacons) as completed:
+// the pillar's gem becomes a flat stamp and the label's number a tick.
+// Runs once per station, never per frame.
+export function markBeaconDone(beacon) {
+  if (!beacon || beacon.done || beacon.kind !== 'station') return false;
+  beacon.done = true;
+  if (!doneGeometry) doneGeometry = pillarGeometry('done');
+  beacon.pillar.geometry = doneGeometry; // the shared station geometry stays in use by the others
+  const old = beacon.label.material.map;
+  beacon.label.material.map = labelTexture({ badge: beacon.badge, name: beacon.name, kind: beacon.kind, fontPx: beacon.fontPx, anisotropy: beacon.anisotropy, done: true });
+  beacon.label.material.needsUpdate = true;
+  old.dispose();
+  return true;
 }
