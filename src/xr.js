@@ -1,12 +1,23 @@
 import * as THREE from 'three';
 import { VRButton } from 'three/addons/webxr/VRButton.js';
 
-// WebXR (VR headset) support: VR button, controller teleport, snap turn.
+// WebXR (VR headset) support: VR button, stick movement, smooth turn, controller teleport, pointer rays.
 //
 // Reference space is 'local-floor': the headset reports the head relative to
 // the real floor, and the player rig (controls.js) is the group that carries
 // that floor around the terrain. The camera and both controllers are children
-// of the rig. Moving in VR is teleport and snap turn only (no smooth movement).
+// of the rig.
+//
+// Walk: the LEFT thumbstick moves the rig over the ground, forward / back and
+//   sideways relative to where the head faces (yaw only). Press the stick
+//   down and hold it to run. Speeds are the desktop ones (controls.js). The
+//   head stays inside the walkable patch and on ground data, like a teleport.
+//   The EVA clock and the path are charged from the head position each frame
+//   (mission.js, cabin.js), so stick walking is charged like desktop walking.
+// Turn: the RIGHT thumbstick turns smoothly about the head.
+// Pointer rays: each controller always shows a long thin ray (RAY_LENGTH_M)
+//   along its pointing direction. Other code may shorten it to what it points
+//   at with setRayLength(index, metres) each frame; a dot marks that point.
 //
 // Teleport: hold the trigger on either controller to aim, release to jump.
 //   The aim is a ballistic arc from the controller. It is tested against the
@@ -16,9 +27,6 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 //   marker disappears otherwise. On release the rig is moved so that the
 //   user's head is above the landing point and the floor is at the ground
 //   height there.
-// Snap turn: flick either thumbstick left or right for one 45 degree turn
-//   about the head. The stick has to come back to the centre before it turns
-//   again.
 // Frame-time readout: A/B/X/Y on either controller (F on desktop).
 //
 // Other code can take over a trigger press or a button through `hooks`:
@@ -28,12 +36,17 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 //   hooks.button(handedness, index) - index 4 is A (right) or X (left), 5 is B
 //     or Y; return true to use the press up, false to leave it to the
 //     frame-time readout;
+//   hooks.move() - return false to switch stick walking off (inside the cabin);
 //   hooks.desktopAim() - return true to keep T / the right mouse button from
 //     starting a teleport aim on desktop (the tablet is up in front of the view).
 
-export const SNAP_TURN_DEG = 45;
-const STICK_ON = 0.6; // past this the stick counts as flicked
-const STICK_OFF = 0.3; // back inside this it is re-armed
+export const TURN_RATE_DEG_S = 90; // right stick at full deflection
+const STICK_DEAD = 0.15; // inside this the stick does nothing; scaled smoothly from there to full
+const STICK_PRESS = 3; // xr-standard: button 3 is the thumbstick pressed down
+
+export const RAY_LENGTH_M = 30;
+const RAY_HALF_WIDTH = 0.0025; // per metre of length: the ray widens with distance so the far end stays readable
+const COLOR_RAY = 0xd8f6ff;
 
 const ARC_SPEED = 20; // m/s: reaches about 10 m aimed level, about 40 m aimed 45 degrees up
 const ARC_GRAVITY = 9.8;
@@ -181,12 +194,14 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
   scene.add(arc, marker);
 
   const aim = { controller: null, result: { point: new THREE.Vector3() } };
-  const hooks = { select: null, button: null, desktopAim: null };
+  const hooks = { select: null, button: null, desktopAim: null, move: null };
   const captured = new Set(); // controllers whose current trigger press a hook has used up
   const state = {
     presenting: false,
     teleports: 0,
-    snapTurns: 0,
+    snapTurns: 0, // kept for older tests: the stick no longer snap turns
+    stickMoveM: 0, // ground covered with the left stick
+    running: false, // left stick held down this frame
     lastTeleport: null,
     refreshRateHz: null,
   };
@@ -201,6 +216,24 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
   const normal = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0);
   const head = new THREE.Vector3();
+  const facing = new THREE.Vector3();
+
+  // One long pointer ray per controller: a thin four-sided cone from the
+  // controller along -z, one unit long, sized by scale only. The dot marks
+  // the point a ray was shortened to.
+  const rayGeometry = new THREE.CylinderGeometry(RAY_HALF_WIDTH, 0.00005, 1, 4, 1, true).rotateX(-Math.PI / 2).translate(0, 0, -0.5);
+  const rayMaterial = new THREE.MeshBasicMaterial({
+    color: COLOR_RAY,
+    transparent: true,
+    opacity: 0.85,
+    side: THREE.DoubleSide,
+    fog: false,
+    toneMapped: false,
+    depthWrite: false,
+  });
+  const dotGeometry = new THREE.SphereGeometry(1, 8, 6);
+  const dotMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false, toneMapped: false, depthTest: false, depthWrite: false, transparent: true });
+  const rayLengths = [RAY_LENGTH_M, RAY_LENGTH_M];
 
   function trace(controller) {
     controller.updateWorldMatrix(true, false);
@@ -269,13 +302,20 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
     controller.name = `controller-${index}`;
     controller.userData.handedness = null;
 
-    // Small visible stub so the user can see where each controller points.
-    const stub = new THREE.Mesh(
-      new THREE.BoxGeometry(0.012, 0.012, 0.14).translate(0, 0, -0.07),
-      new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false, toneMapped: false }),
-    );
-    stub.name = 'controller-pointer';
-    controller.add(stub);
+    // Long ray so the user can always see where each controller points.
+    const ray = new THREE.Mesh(rayGeometry, rayMaterial);
+    ray.name = 'controller-pointer';
+    ray.renderOrder = 979;
+    ray.frustumCulled = false;
+    ray.scale.setScalar(RAY_LENGTH_M);
+    const dot = new THREE.Mesh(dotGeometry, dotMaterial);
+    dot.name = 'controller-pointer-dot';
+    dot.renderOrder = 981;
+    dot.frustumCulled = false;
+    dot.visible = false;
+    controller.add(ray, dot);
+    controller.userData.ray = ray;
+    controller.userData.rayDot = dot;
 
     controller.addEventListener('connected', (event) => {
       controller.userData.handedness = event.data?.handedness ?? null;
@@ -363,8 +403,8 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
     state.presenting = false;
     stopAim();
     captured.clear();
-    sticks.clear();
     buttons.clear();
+    lastMs = 0;
     player.setDesktopInput(true);
     frameMeter?.reset();
     placeFrameMeter();
@@ -403,25 +443,80 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
     if (aim.controller === desktopAimer) stopAim();
   });
 
-  // Thumbstick and button state per input source, for "one action per press".
-  const sticks = new Map(); // inputSource -> armed
+  // Pointer rays: back to the full length at the start of every frame; whoever
+  // knows what a ray points at (UI panels, the airlock door, the return
+  // marker) then shortens it. The shortest length given in a frame wins.
+  function resetRays() {
+    for (let i = 0; i < 2; i++) {
+      const controller = controllers[i];
+      rayLengths[i] = RAY_LENGTH_M;
+      controller.userData.ray.scale.setScalar(RAY_LENGTH_M);
+      controller.userData.ray.visible = state.presenting && aim.controller !== controller; // the teleport arc replaces it while aiming
+      controller.userData.rayDot.visible = false;
+    }
+  }
+  function setRayLength(index, metres) {
+    const controller = controllers[index];
+    if (!controller || !(metres > 0) || metres >= rayLengths[index]) return;
+    rayLengths[index] = metres;
+    controller.userData.ray.scale.setScalar(metres);
+    const dot = controller.userData.rayDot;
+    dot.position.set(0, 0, -metres);
+    dot.scale.setScalar(0.004 + 0.005 * metres);
+    dot.visible = controller.userData.ray.visible;
+  }
+
+  // Stick value outside the dead zone, rescaled to 0..1 (sign kept).
+  const stick = (v) => (Math.abs(v) <= STICK_DEAD ? 0 : (Math.sign(v) * (Math.abs(v) - STICK_DEAD)) / (1 - STICK_DEAD));
+
+  // Left stick: walk the head over the ground. x = right, y = back (stick axes), each -1..1.
+  function stickMove(x, y, run, dt) {
+    if (hooks.move && hooks.move() === false) return;
+    const length = Math.hypot(x, y);
+    if (length <= STICK_DEAD) return;
+    camera.getWorldDirection(facing);
+    const flat = Math.hypot(facing.x, facing.z);
+    if (flat < 1e-3) return; // looking straight up or down: no heading to walk along
+    const fx = facing.x / flat;
+    const fz = facing.z / flat;
+    const amount = Math.min((length - STICK_DEAD) / (1 - STICK_DEAD), 1);
+    const step = ((run ? player.state.runSpeed : player.state.walkSpeed) * amount * dt) / length;
+    // forward = (fx, fz), right = (-fz, fx) in (x east, z south)
+    const dx = (-y * fx - x * fz) * step;
+    const dz = (-y * fz + x * fx) * step;
+    player.headPosition(head);
+    const b = patch.bounds;
+    const hx = head.x;
+    const hz = head.z;
+    const tx = Math.min(Math.max(hx + dx, b.minX), b.maxX);
+    const tz = Math.min(Math.max(hz + dz, b.minZ), b.maxZ);
+    // Refused over missing data: slide along whichever axis is still open.
+    if (!player.moveHeadTo(tx, tz) && !player.moveHeadTo(tx, hz) && !player.moveHeadTo(hx, tz)) return;
+    player.headPosition(head);
+    state.stickMoveM += Math.hypot(head.x - hx, head.z - hz);
+  }
+
+  // Button state per input source, for "one action per press".
   const buttons = new Map(); // inputSource -> buttons held last frame (bit 0: index 4, bit 1: index 5)
 
-  function pollGamepads() {
+  function pollGamepads(dt) {
+    state.running = false;
     const session = renderer.xr.getSession();
     if (!session) return;
     for (const source of session.inputSources) {
       const gamepad = source.gamepad;
       if (!gamepad) continue;
       // xr-standard: axes 2/3 are the thumbstick (0/1 a touchpad, if any).
-      const x = gamepad.axes.length >= 4 ? gamepad.axes[2] : (gamepad.axes[0] ?? 0);
-      const armed = sticks.get(source) ?? true;
-      if (armed && Math.abs(x) >= STICK_ON) {
-        sticks.set(source, false);
-        player.turnAboutHead(x > 0 ? SNAP_TURN_DEG : -SNAP_TURN_DEG);
-        state.snapTurns++;
-      } else if (!armed && Math.abs(x) <= STICK_OFF) {
-        sticks.set(source, true);
+      const wide = gamepad.axes.length >= 4;
+      const x = (wide ? gamepad.axes[2] : gamepad.axes[0]) || 0;
+      const y = (wide ? gamepad.axes[3] : gamepad.axes[1]) || 0;
+      if (source.handedness === 'left') {
+        const run = !!gamepad.buttons[STICK_PRESS]?.pressed;
+        if (run) state.running = true;
+        stickMove(x, y, run, dt);
+      } else if (source.handedness === 'right') {
+        const turn = stick(x);
+        if (turn) player.turnAboutHead(turn * TURN_RATE_DEG_S * dt);
       }
       // xr-standard: buttons 4 and 5 are A/B (right) or X/Y (left).
       const held = (gamepad.buttons[4]?.pressed ? 1 : 0) | (gamepad.buttons[5]?.pressed ? 2 : 0);
@@ -439,9 +534,14 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
   }
 
   // Call once per frame, before rendering.
+  let lastMs = 0;
   function update() {
+    resetRays();
     if (state.presenting) {
-      pollGamepads();
+      const now = performance.now();
+      const dt = lastMs ? Math.min((now - lastMs) / 1000, 0.1) : 0;
+      lastMs = now;
+      pollGamepads(dt);
       player.followGround();
     }
     if (aim.controller) drawAim(trace(aim.controller));
@@ -457,6 +557,7 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
     state,
     update,
     placeFrameMeter,
+    setRayLength,
     // For tests: where a controller's arc lands right now.
     traceController: (index) => {
       const r = trace(controllers[index]);

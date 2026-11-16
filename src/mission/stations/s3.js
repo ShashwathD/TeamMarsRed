@@ -112,7 +112,7 @@ export function createStation(ctx) {
       title: card.title,
       body: fill(card.text),
       source: card.source,
-      action: 'Press A to scan (E on desktop).', // extra to the contract: the framework may show it
+      action: 'Press A (E) to scan.', // extra to the contract: the framework may show it
     },
   ];
 

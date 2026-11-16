@@ -185,8 +185,8 @@ export async function createMission({ site, patch, scene, renderer, camera, play
 
   // ---- EVA clock and HUD (brief: SYSTEMS) --------------------------------
   const clock = createClock({ rg: routeGrid, pace, assumptions: data.assumptions, routePoints, airlock: data.start });
-  // The HUD needs a camera to follow; without one (no viewer) the clock still runs.
-  const hud = camera ? createHud({ scene, camera, anisotropy: renderer ? Math.min(4, renderer.capabilities.getMaxAnisotropy()) : 1 }) : null;
+  // The HUD is worn on the camera; without one (no viewer) the clock still runs.
+  const hud = camera ? createHud({ scene, camera, renderer, anisotropy: renderer ? Math.min(4, renderer.capabilities.getMaxAnisotropy()) : 1 }) : null;
   clock.onStatus = (status, previous) => {
     // "RETURN" when the margin gets worse (ok -> amber -> red), not when it recovers.
     if (hud && LEVELS.indexOf(status) > LEVELS.indexOf(previous)) hud.flash('RETURN', { level: status });
@@ -394,6 +394,13 @@ export async function createMission({ site, patch, scene, renderer, camera, play
           else ui.clearPointer(1 + i);
         }
         ui.update();
+        // CONTROLS C1 HOOK: the long controller rays (xr.js) end on the panel they point at.
+        if (presenting && xr.setRayLength) {
+          for (let i = 0; i < 2; i++) {
+            const pointer = ui.pointers[1 + i];
+            if (pointer.active && pointer.hit.panel) xr.setRayLength(i, pointer.hit.distance);
+          }
+        }
       }
 
       if (!hud) return;
@@ -415,6 +422,9 @@ export async function createMission({ site, patch, scene, renderer, camera, play
       v.o2 = Math.round(100 - 85 * used);
       v.battery = Math.round(100 - 75 * used);
       v.tempC = Math.round(20 + 4 * used);
+      // The HUD panels step aside while the tablet is being read: on desktop it fills the view,
+      // in the headset the lit forearm screen would sit behind the head-fixed panels.
+      hud.covered = !!tablet && (tablet.state.mount === 'desktop' ? tablet.state.slide > 0 : tablet.state.open);
       hud.update(dt, viewer);
     },
   };

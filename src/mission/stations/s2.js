@@ -142,10 +142,10 @@ export function createStation(ctx) {
   const state = { entered: false, slopeSeen: false, choice: null, chargedS: 0 };
   const toStop = String(data.route.direct.to).replace(/^S/, ''); // the stop the straight line runs to (from the data)
   const PROMPT = {
-    slopeVr: 'Step 1 of 2: turn on the slope layer. Tablet, LAYERS tab (or press A).',
-    slopeDesk: 'Step 1 of 2: turn on the slope layer. Tablet (Tab), LAYERS (or press E).',
-    chooseVr: `Step 2 of 2: which way to stop ${toStop}? Point at the DIRECT or PLANNED sign and press the trigger.`,
-    chooseDesk: `Step 2 of 2: which way to stop ${toStop}? Click the DIRECT or PLANNED sign.`,
+    slopeVr: 'Step 1 of 2: turn on the slope layer. Tablet with Y (Tab), LAYERS tab; or press A (E).',
+    slopeDesk: 'Step 1 of 2: turn on the slope layer. Tablet with Y (Tab), LAYERS tab; or press A (E).',
+    chooseVr: `Step 2 of 2: which way to stop ${toStop}? Point at the DIRECT or PLANNED sign and press the trigger (click).`,
+    chooseDesk: `Step 2 of 2: which way to stop ${toStop}? Point at the DIRECT or PLANNED sign and press the trigger (click).`,
     done: '',
   };
 

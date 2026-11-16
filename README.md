@@ -29,8 +29,9 @@ python3 tools/stitch_mosaic.py jezero jezero_delta
 
 ## Controls
 
-Every VR action has a desktop key. "works" means it passed the desktop and headset-emulator tests;
-nothing has been tried on a real headset.
+Every VR action has a desktop key. Hints in the app name the headset control first and the
+desktop one in parentheses, for example "Press A (E) to scan". "works" means it passed the desktop
+and headset-emulator tests; nothing has been tried on a real headset.
 
 The experience starts in the rover cabin: read the briefing card on the hologram table, select
 DEPART, wait about 6 seconds for the airlock light to turn green, then open the door behind you.
@@ -40,19 +41,19 @@ for the debrief.
 | Action | Quest 3S | Desktop | State |
 |---|---|---|---|
 | Look | turn your head | click the page to capture the mouse; `Esc` releases it | works |
-| Walk | (teleport only) | `W` `A` `S` `D` or arrow keys; hold `Shift` to run | works |
+| Walk / strafe | left stick; press the stick in and hold to sprint | `W` `A` `S` `D` or arrow keys; hold `Shift` to run | works |
 | Teleport | hold the right trigger on open ground to aim, release to jump | hold `T` or the right mouse button, release to jump | works |
-| Turn | right thumbstick left / right (snap turn) | mouse, or left / right arrow | works |
+| Turn | right stick left / right | mouse, or left / right arrow | works |
 | Select / confirm (tablet buttons, cards, DEPART, coring at the marked rock) | point the right controller, press the trigger | mouse click | works |
-| Tablet on / off | `Y` on the left controller, or look down at your left forearm | `Tab` or `Y` | works |
+| Tablet on / off | `Y` on the left controller, or look down at your left forearm; while off its dark screen reads "Press Y (Tab) to turn the tablet on" | `Tab` or `Y` | works |
 | Scan at a station | `A` | `E` | works: slope layer at stop 2, rover-path pulse at stop 3, switch ridge at stop 5 |
 | Airlock door | `B`, or point at the door and press the trigger | `B`, or click the door | works (inside: opens the airlock once the light is green; outside: back to the rover) |
 | Take / put back a sample tube (stops 4 and 5) | right grip | `G` | works |
 | Frame-time readout | `X` on the left controller | `F` | works |
 
 Without the mission (`?mission=0`, `?tablet=0`, or a site other than `jezero_delta`) the `A`, `B`,
-`X` and `Y` buttons all toggle the frame-time readout. There is no smooth walking in VR: teleport
-and snap turn only.
+`X` and `Y` buttons all toggle the frame-time readout. In VR the left stick walks and the right
+stick turns; teleport stays available as well.
 
 ## URL flags
 
@@ -82,7 +83,7 @@ Screenshots of the delta and where they were taken: `docs/screenshots/`.
 - `src/sky.js` - sky gradient, dust haze, lights
 - `src/controls.js` - player rig, keyboard + mouse walking
 - `src/northMarker.js` - north marker for checking orientation (only with `?debug=1`)
-- `src/xr.js` - VR: teleport, snap turn; hooks that let a UI panel take a trigger press or a button
+- `src/xr.js` - VR: stick walking and turning, teleport; hooks that let a UI panel take a trigger press or a button
 - `src/frameMeter.js` - frame-time readout drawn in the scene
 - `src/mission/mission.js` - the Marswalk mission (only entry point; loads `data/mission/<site>.json`)
 - `src/mission/route.js` - slope-limited route maths: A* on the 2 m grid, walking time (no Three.js; also run by the tool)
@@ -90,7 +91,7 @@ Screenshots of the delta and where they were taken: `docs/screenshots/`.
 - `src/mission/beacons.js` - station beacons with labels that face the viewer
 - `src/mission/lowpoly.js` - shared low-poly palette, material and geometry merge
 - `src/mission/clock.js` - EVA clock: mission time charged for ground covered and station stops, time to walk home, margin
-- `src/mission/hud.js` - suit HUD: a strip in the scene that trails behind head turns, and short flashes
+- `src/mission/hud.js` - helmet HUD worn on the camera: four corner panels, visor brackets, and short flashes at the top centre
 - `src/mission/ui.js` - UI kit: canvas panels with tappable regions, ray picking for controllers and the mouse
 - `src/mission/tablet.js` - forearm tablet: MAP (with teleport to a stop), LOG, LAYERS, HELP
 - `src/mission/credits.js` - the credits as data (from the mission file, plus fixed lines that repeat `CREDITS.md`) and as paged canvas text; used by the tablet's LAYERS tab, and `createCreditsPanel` gives a stand-alone panel
@@ -133,9 +134,12 @@ Local frame: x = east, z = south, y = up, in metres, origin at the patch centre
 
 `window.__mars` (debug handle): `player` (x, y, z, headingDeg, elevationM),
 `setPose({ x, z, headingDeg, pitchDeg })`, `triangles`, `measureTriangles()`, `groundY(x, z)`.
-With the mission loaded a HUD strip floats in front of and below the view (desktop and VR): EVA
-time left, time to walk home, margin, heading, slope underfoot and distance to the next station
-are real; suit oxygen, battery and temperature are cosmetic and tagged SIM. The clock does not
+With the mission loaded a helmet HUD is fixed to the view (desktop and VR), 1.3 m in front of the
+eyes: top left EVA time left and margin; top right heading and distance to the next station;
+bottom left slope underfoot and time to walk home; bottom right suit oxygen, battery and
+temperature, which are cosmetic and tagged SIM; short flashes at the top centre; thin brackets
+in the corners. The other values are real. Each panel is redrawn only when one of its own values
+changes. On desktop the panels step aside while the tablet is up. The clock does not
 count real seconds: it is charged the walking time of the ground covered (walking, running and
 teleporting cost the same per metre) and 20 minutes per station. See DECISIONS.md, "Mission B3".
 For tests: `mission.clock` (`charge`, `chargeStop`, `moveCharged`, `routeSeconds`,

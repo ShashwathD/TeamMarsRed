@@ -1110,3 +1110,84 @@ Independent check (after the integration, same day):
   layer on (one more texture, no geometry). Not measured with the three deposit markers out.
 - Fixed: the mineral debrief hint no longer starts with "No fail state:"; CREDITS.md keeps
   its sentence "The other three:" unchanged, with the minerals entry after that list.
+
+## Controls and HUD (2026-11-15, last evening)
+
+Asked for by the team's note. It replaces three older rules (see `DECISIONS.md`).
+
+What changed:
+
+- **Left stick walks.** Forward, back and sideways relative to where the head faces. Press the
+  stick in and hold it to run. Same speeds as the desktop keys. The head cannot leave the patch
+  or step onto ground with no data. No stick walking inside the cabin.
+- **Right stick turns smoothly** about the head. The 45 degree snap turn is gone.
+- **Teleport** with the trigger is unchanged.
+- **Pointer rays.** Both controllers always show a 30 m ray. It stops with a dot on the tablet,
+  cards and cabin panels, the airlock door and the return-to-rover marker. The ray hides on the
+  hand that is aiming a teleport.
+- **Helmet HUD.** The strip is replaced by four panels fixed to the view: top left EVA time left
+  and margin, top right heading and next stop, bottom left slope and walk-home time, bottom
+  right the three SIM suit values. Flashes show at the top centre. The panels are hidden while
+  the tablet is lit (desktop and headset) and inside the cabin.
+- **Tablet off.** On the arm, a dark screen reads "Press Y (Tab) to turn the tablet on" in grey.
+- **Hints** name the headset control first and the desktop control in parentheses.
+- On desktop the station card sits a little lower so it no longer covers the top-right panel.
+
+Measured in the headset emulator (iwer, Quest 3 profile, software rendering at about 2 frames a
+second; speeds are per second of the app's own frame clock, which caps a frame at 0.1 s):
+
+| What | Measured |
+| --- | --- |
+| Walk, stick fully forward | 3.00 m/s, 9.30 m straight along the facing, 0.00 m sideways |
+| Strafe, stick fully right / left | 3.00 m/s to the right / left, no forward drift, no turn |
+| Run, stick pressed in and forward | 15.00 m/s |
+| Stick half forward | 1.24 m/s |
+| Stick inside the dead zone (0.1) | no movement |
+| Turn, right stick fully right | 90.0 degrees a second clockwise, head stays in place |
+| Largest turn in one frame | 9.0 degrees (a 0.1 s frame); no snap turns |
+| Right stick half right | 37 degrees a second |
+| Pointer rays, pointing at nothing | 30.00 m, both controllers |
+| Ray pointed at the lit tablet | stops at 0.37 m with a dot (tablet 0.37 m away) |
+| Ray pointed at the return marker from 18 m | stops at 20.1 m with a dot; trigger returns to the rover |
+| Ray pointed at the airlock door sign | stops at 2.3 m with a dot |
+| Stop 2 signs | 8.4 m and 9.3 m away, inside the 30 m ray; trigger on PLANNED selects it |
+| Run at the east edge of the patch | head stops at x = 999.0 m, the edge |
+| HUD panel centres in the headset | 21 degrees to the side, 15.5 up, 17.5 down, 1.3 m away |
+| HUD draw calls | 5, or 6 during a flash |
+
+How it was tested (one headless Chromium at a time, scripts kept outside the repository):
+
+- Emulated VR, controls, two runs: 31 of 34 checks pass in the first and all 13 in the second.
+  The 3 failures were the test's own mistake (it misread the heading where it wraps past 360
+  degrees); the second run fixed that and repeated the two turn checks. The third, turning
+  inside the cabin, was not repeated: its number is 109 degrees clockwise once unwrapped.
+  Checked: walk, back, strafe, half stick, dead zone, run, turn both ways, forward after a
+  turn and with the head turned in the room, EVA clock and distance rising with stick walking
+  (12.4 s and 11.4 m for 11.4 m walked), teleport, rays, tablet off / on with Y, HUD panels
+  and flash, return marker, airlock door sign, no walking in the cabin, stop 2 signs, patch
+  edge. No console errors.
+- Desktop, controls: 14 checks pass. W A S D, Shift to run, mouse look, T teleport, HUD panels
+  in the four corners of a 1280 x 720 window, flash, tablet open and closed with Tab, HELP tab.
+- Desktop full playthroughs with the existing end-to-end script, unchanged: 83 checks pass on
+  the planned route and 84 on the direct route, debrief numbers equal to the script's own sums.
+- Emulated VR full playthrough with the same script (planned route): 83 checks pass. It moves
+  by teleport and tablet jumps, not by stick.
+- Screenshots looked at: headset view with HUD and rays, tablet off and on, stop 2 signs, door
+  ray, marker ray, desktop HUD, flash, HELP tab, station card.
+
+NOT verified:
+
+- **No real headset.** Everything above is the emulator or the desktop.
+- **Comfort is unknown.** Smooth walking at 3 m/s, running at 15 m/s and smooth turning at 90
+  degrees a second can make people feel ill; there is no vignette and no snap-turn option.
+- **The head-fixed HUD is unknown in a headset**: whether the text is sharp that far from the
+  centre of the lenses, whether it feels too close, too wide or too small. In the emulator
+  picture the panels look small and sit about half way out from the centre. The positions are
+  three numbers at the top of `src/mission/hud.js` (`VR_X_M`, `VR_TOP_M`, `VR_BOTTOM_M`).
+- In the headset the HUD draws over anything it overlaps (station cards, signs). Only the
+  tablet hides it.
+- The ray passes through the stop 2 signs and the deposit markers without a dot.
+- Stick values come from the emulator; a real controller's rest position and its click while
+  pushed forward were not tried.
+- Walking against a hole in the ground data was not tested (no hole inside this patch).
+- Frame rate on the Quest with the new HUD was not measured.

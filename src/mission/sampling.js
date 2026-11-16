@@ -185,7 +185,7 @@ export function installSampling(mission, deps = {}) {
     const second = collected
       ? 'Collected. Shelve the container in the rover cabin.'
       : marker.near
-        ? 'Collect: trigger / click this marker, or grip / G.'
+        ? 'Collect: trigger (click) this marker, or grip (G).'
         : `Come within ${COLLECT_M} m to collect.`;
     ctx.fillStyle = collected ? THEME.dim : THEME.text;
     fitText(ctx, second, 34, 172, 42, W - 68, { minPx: 30 });
@@ -752,7 +752,7 @@ export function installSampling(mission, deps = {}) {
         setFont(ctx, 26);
         const hint =
           s.collected > s.shelved
-            ? 'These are the numbers so far. Put the carried containers on the shelf (grab and release; or click the shelf / press G).'
+            ? 'These are the numbers so far. Put the carried containers on the shelf: grip and release (click the shelf, or G).'
             : 'These are the numbers so far. You can go back out through the airlock behind you.';
         drawParagraph(ctx, hint, left, H - 96, room, 32, 2);
         say(hint);
