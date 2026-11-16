@@ -5,7 +5,7 @@ and `data/`. There is nothing to build. All addresses inside it are relative, so
 sub-folder address such as `https://NAME.github.io/TeamMarsRed/`.
 
 Nothing has been pushed. The mission work is on the local branch `marswalk-mission` (the earlier
-terrain viewer is on `jezero-delta-terrain`); use the branch you want to publish in the commands below.
+terrain viewer is on `marswalk-mission`); use the branch you want to publish in the commands below.
 
 What was checked before writing this (on a Mac, not on a headset):
 
@@ -42,13 +42,13 @@ account, Pages also needs the repository to be public.
 2. Send the branch to GitHub:
 
    ```sh
-   git push -u origin jezero-delta-terrain
+   git push -u origin marswalk-mission
    ```
 
 3. On github.com, open the repository, then **Settings**, then **Pages** (left column).
 
 4. Under **Build and deployment**, set **Source** to **Deploy from a branch**. Choose the branch
-   `jezero-delta-terrain` and the folder `/ (root)`. Press **Save**.
+   `marswalk-mission` and the folder `/ (root)`. Press **Save**.
 
    If you would rather publish from `main`, merge the branch into `main` first and choose `main`
    here instead.
@@ -66,7 +66,7 @@ account, Pages also needs the repository to be public.
 
 If you cannot use that repository: create a new public repository under your own account, add it
 as a second remote (`git remote add mine https://github.com/YOUR-NAME/TeamMarsRed.git`), push the
-branch there (`git push -u mine jezero-delta-terrain`) and do steps 3 to 6 on it. The address is
+branch there (`git push -u mine marswalk-mission`) and do steps 3 to 6 on it. The address is
 then `https://YOUR-NAME.github.io/TeamMarsRed/`.
 
 The page needs the internet every time it loads: the 3D library (Three.js 0.170.0) comes from
