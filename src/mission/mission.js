@@ -8,6 +8,7 @@ import { PALETTE } from './lowpoly.js';
 import { createLayers } from './layers.js';
 import { attachDesktopPointer, createUi } from './ui.js';
 import { createTablet } from './tablet.js';
+import { createStations } from './stations/index.js';
 
 // The Jezero Marswalk mission: single entry point, loaded from main.js.
 // Later build steps (clock, tablet, stations, cabin) extend this module.
@@ -237,6 +238,7 @@ export async function createMission({ site, patch, scene, renderer, camera, play
     actions,
     ui: null,
     tablet: null,
+    stationSet: null, // station framework (stations/index.js): cards, actions, completion
 
     // Puts the explorer at (x, z), looking along headingDeg (clockwise from
     // north) if given. Does not touch the clock: the caller charges the trip
@@ -349,6 +351,7 @@ export async function createMission({ site, patch, scene, renderer, camera, play
       // Tablet and pointers: the desktop mouse, or each VR controller's ray.
       if (ui) {
         if (tablet) tablet.update(dt, viewer);
+        if (stationSet) stationSet.update(dt, viewer);
         desktopPointer.update();
         const presenting = renderer.xr.isPresenting && xr;
         for (let i = 0; i < 2; i++) {
@@ -385,6 +388,7 @@ export async function createMission({ site, patch, scene, renderer, camera, play
   let ui = null;
   let tablet = null;
   let desktopPointer = null;
+  let stationSet = null;
   if (camera && renderer) {
     ui = createUi({ scene });
     desktopPointer = attachDesktopPointer(ui, { camera, renderer });
@@ -426,6 +430,11 @@ export async function createMission({ site, patch, scene, renderer, camera, play
         if (event.code === 'KeyE' && actions.scan) actions.scan();
         else if (event.code === 'KeyB' && actions.door) actions.door();
       });
+    }
+    // Stations (B5 on): registry, cards, input after the panels, completion.
+    if (player) {
+      stationSet = await createStations({ mission, scene, camera, renderer, player, xr, patch, ui });
+      mission.stationSet = stationSet;
     }
   }
 
