@@ -20,6 +20,16 @@ import { VRButton } from 'three/addons/webxr/VRButton.js';
 //   about the head. The stick has to come back to the centre before it turns
 //   again.
 // Frame-time readout: A/B/X/Y on either controller (F on desktop).
+//
+// Other code can take over a trigger press or a button through `hooks`:
+//   hooks.select(controller, 'start' | 'end') - return true from 'start' to use
+//     the press up (for example it landed on a UI panel): no teleport aim then
+//     starts, and the matching 'end' is reported to the hook only;
+//   hooks.button(handedness, index) - index 4 is A (right) or X (left), 5 is B
+//     or Y; return true to use the press up, false to leave it to the
+//     frame-time readout;
+//   hooks.desktopAim() - return true to keep T / the right mouse button from
+//     starting a teleport aim on desktop (the tablet is up in front of the view).
 
 export const SNAP_TURN_DEG = 45;
 const STICK_ON = 0.6; // past this the stick counts as flicked
@@ -171,6 +181,8 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
   scene.add(arc, marker);
 
   const aim = { controller: null, result: { point: new THREE.Vector3() } };
+  const hooks = { select: null, button: null, desktopAim: null };
+  const captured = new Set(); // controllers whose current trigger press a hook has used up
   const state = {
     presenting: false,
     teleports: 0,
@@ -271,13 +283,22 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
     });
     controller.addEventListener('disconnected', () => {
       controller.userData.handedness = null;
+      captured.delete(controller);
       if (aim.controller === controller) stopAim();
       placeFrameMeter();
     });
     controller.addEventListener('selectstart', () => {
+      if (hooks.select && hooks.select(controller, 'start')) {
+        captured.add(controller);
+        return;
+      }
       aim.controller = controller;
     });
     controller.addEventListener('selectend', () => {
+      if (captured.delete(controller)) {
+        hooks.select?.(controller, 'end');
+        return;
+      }
       if (aim.controller !== controller) return;
       teleport(trace(controller)); // aim again with the pose at release
       stopAim();
@@ -285,6 +306,11 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
     player.rig.add(controller);
     return controller;
   });
+
+  // The controller (pointing-ray space) held in the given hand ('left' | 'right'), or null.
+  // (Written without a callback: it is called every frame.)
+  const controllerFor = (hand) =>
+    controllers[0].userData.handedness === hand ? controllers[0] : controllers[1].userData.handedness === hand ? controllers[1] : null;
 
   // Frame-time panel: on the camera on desktop; in VR on the left controller,
   // or in front of the face if there is no left controller.
@@ -336,6 +362,7 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
   renderer.xr.addEventListener('sessionend', () => {
     state.presenting = false;
     stopAim();
+    captured.clear();
     sticks.clear();
     buttons.clear();
     player.setDesktopInput(true);
@@ -351,6 +378,7 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
   camera.add(desktopAimer);
   function desktopAimStart() {
     if (state.presenting) return;
+    if (hooks.desktopAim && hooks.desktopAim()) return; // something in front of the view takes the press (the open tablet)
     aim.controller = desktopAimer;
   }
   function desktopAimEnd() {
@@ -377,7 +405,7 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
 
   // Thumbstick and button state per input source, for "one action per press".
   const sticks = new Map(); // inputSource -> armed
-  const buttons = new Map(); // inputSource -> was pressed
+  const buttons = new Map(); // inputSource -> buttons held last frame (bit 0: index 4, bit 1: index 5)
 
   function pollGamepads() {
     const session = renderer.xr.getSession();
@@ -396,9 +424,17 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
         sticks.set(source, true);
       }
       // xr-standard: buttons 4 and 5 are A/B (right) or X/Y (left).
-      const pressed = Boolean(gamepad.buttons[4]?.pressed || gamepad.buttons[5]?.pressed);
-      if (pressed && !buttons.get(source)) frameMeter?.toggle();
-      buttons.set(source, pressed);
+      const held = (gamepad.buttons[4]?.pressed ? 1 : 0) | (gamepad.buttons[5]?.pressed ? 2 : 0);
+      const before = buttons.get(source) ?? 0;
+      let meter = false;
+      for (let bit = 0; bit < 2; bit++) {
+        if (!(held & (1 << bit)) || before & (1 << bit)) continue; // not newly pressed
+        if (hooks.button && hooks.button(source.handedness, 4 + bit)) continue;
+        // One toggle per press, also when two free buttons go down together or one is still held.
+        if (!before) meter = true;
+      }
+      if (meter) frameMeter?.toggle();
+      buttons.set(source, held);
     }
   }
 
@@ -414,6 +450,8 @@ export function createXR({ renderer, scene, camera, player, patch, frameMeter, o
   return {
     button,
     controllers,
+    controllerFor,
+    hooks,
     arc,
     marker,
     state,
