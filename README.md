@@ -60,6 +60,8 @@ Screenshots of the delta and where they were taken: `docs/screenshots/`.
 - `src/mission/ui.js` - UI kit: canvas panels with tappable regions, ray picking for controllers and the mouse
 - `src/mission/tablet.js` - forearm tablet: MAP (with teleport to a stop), LOG, LAYERS, HELP
 - `src/mission/layers.js` - data layers the tablet switches: photo, slope hazard, rover path and stops, sample sites, panoramas (the backdrop is always on)
+- `src/mission/stations/s5.js` - stop 5, Ridge lookout: panorama pad (360 view of Skinner Ridge or Wildcat Ridge), four sample tubes to log, cards
+- `src/mission/fieldcheck.js` - Field Check: four tap questions on the tablet, score kept for the debrief
 - `tools/build_mission.py` - builds `data/mission/<site>.json`; plans the route through `tools/route_cli.mjs` (needs Node.js)
 
 On the delta patch the mission layer is loaded: a blue route ribbon, the rover's real path in
