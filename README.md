@@ -34,7 +34,7 @@ nothing has been tried on a real headset.
 
 The experience starts in the rover cabin: read the briefing card on the hologram table, select
 DEPART, wait about 6 seconds for the airlock light to turn green, then open the door behind you.
-Outside, select the rover (from up to 40 m) or press the door key within 8 m of it to go back in
+Outside, select the rover (from up to 40 m) or press the door key within 12 m of it (the start spot included) to go back in
 for the debrief.
 
 | Action | Quest 3S | Desktop | State |

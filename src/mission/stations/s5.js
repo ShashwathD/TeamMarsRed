@@ -264,7 +264,8 @@ export function createStation(ctx) {
   };
 
   function checkDone() {
-    if (state.done || !tubes.every((t) => t.logged) || !fieldCheck.state.done) return;
+    // Without the tablet (?tablet=0) the Field Check cannot be shown: the four cores are enough.
+    if (state.done || !tubes.every((t) => t.logged) || (mission.tablet && !fieldCheck.state.done)) return;
     state.done = true;
     if (ctx.done) ctx.done();
   }
@@ -541,11 +542,11 @@ export function createStation(ctx) {
   let promptText = '';
   function prompt() {
     const logged = tubes.reduce((n, t) => n + (t.logged ? 1 : 0), 0);
-    const key = 1 + logged * 16 + (state.done ? 1 : 0) + (fieldCheck.state.done ? 2 : 0) + (state.immersive ? 4 : 0) + (state.layerOn ? 8 : 0); // a number: no garbage per frame
+    const key = 1 + logged * 64 + (state.done ? 1 : 0) + (fieldCheck.state.done ? 2 : 0) + (state.immersive ? 4 : 0) + (state.layerOn ? 8 : 0) + (fieldCheck.state.open ? 16 : 0); // a number: no garbage per frame
     if (key === promptKey) return promptText;
     promptKey = key;
     if (state.done) promptText = 'Stop complete.';
-    else if (logged === tubes.length) promptText = 'Take the Field Check on the tablet.';
+    else if (logged === tubes.length) promptText = fieldCheck.state.open ? 'Take the Field Check on the tablet.' : 'Select FIELD CHECK on the stand screen: it opens on the tablet.'; // after LATER the way back to it is the stand
     else if (!state.immersive && state.layerOn) promptText = `Stand on the pad for the 360 view. Cores logged: ${logged} of ${tubes.length}.`;
     else promptText = `Take a tube to log it (grip, G or click). Cores logged: ${logged} of ${tubes.length}.`;
     return promptText;

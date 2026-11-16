@@ -870,3 +870,104 @@ Known problems:
   no source line (it carries the ASSUMPTION and SIM note).
 - Older test scripts that expect 7 credits pages or the old notebook wording will fail.
 - PUBLISH.md Part 1 still names the branch `jezero-delta-terrain` in its push commands.
+
+## Mission B9 (part 1): end-to-end runs, fixes and performance
+
+Everything here ran in headless Chromium with software rendering; VR was emulated with iwer.
+Nothing ran on a real Quest 3S.
+
+End-to-end playthroughs (new test `b9a/e2e.cjs`, one run on desktop choosing DIRECT at stop 2,
+one in emulated VR choosing PLANNED; 59 checks each, all pass, no console errors or warnings):
+
+- Cabin briefing; B, scan and grip refused; the tablet opened inside (Y), all four tabs, a map
+  jump refused with nothing charged; DEPART by mouse click / ray; door refused in transit; the
+  6 s transit left to run its own course; door by B (desktop) and by a ray on the door sign (VR).
+- To stop 2 by seven real teleports along the route (T on desktop, the trigger arc in VR), then
+  A / E for the slope layer and a click / ray on the DIRECT or PLANNED sign.
+- Stop 3 scan (and a second scan, which costs nothing). Stop 4: a trigger at the rock before
+  taking the tube (no coring, no teleport), grip, grip again to stow, grip, trigger at the
+  rock, sealed. Stop 5: a real teleport onto the pad, A / E and a click / ray on the stand
+  screen to switch ridge, four tubes by grip (a fifth adds nothing), the Field Check with one
+  wrong answer, all nine taps by mouse (desktop) or by the right-hand ray on the tablet (VR).
+- Map jump to the airlock, return by a click on the rover (desktop) or B at the start spot
+  (VR), debrief, out through the door again and back in.
+- The test keeps its own ledger from the raw terrain file (its own slope grid, walking pace,
+  route sums and landing rule; nothing imported from `src/`) and compares after every stop and
+  at the debrief. Desktop / DIRECT: 8669.3 s and 3435.7 m on the page against 8669.3 s and
+  3435.7 m of my own; 4 of 4 stops, 5/5 cores, 3/4, slope warnings amber 1, red 1 (the red one
+  is the DIRECT choice). VR / PLANNED: 8685.1 s and 3437.3 m against 8684.3 s and 3437.3 m;
+  amber 1, red 0. The 0.8 s gap is the PLANNED surcharge: the page charges 14.1 s, my own sum
+  along the straight line gives 13.3 s (a different sampling step). The console text showed
+  "2 h 24 min" / "2 h 25 min", "3.44 km", "4 of 4", "5/5", "3/4 right" as expected.
+- I looked at 14 screenshots of the two runs (tablet in the cabin, outside start on desktop and
+  in VR, stop 2 signs, stop 4, the 360 view, the wrong-answer page, both debriefs, the zero
+  debrief, the tablet after LATER) and 3 of the horizon after the backdrop change.
+
+"Never stuck" run (new test `b9a/edge.cjs`, desktop, 33 checks, all pass, no console errors):
+every key and three mouse clicks (left and right) in the briefing, in transit and outside; an
+immediate return (debrief with zeros, "not taken", no NaN) and out again; a tablet jump to
+every pin from every other pin (20 jumps, each cost equal to my own sum; the clock ended over
+8 h and nothing stopped working); stop 5 first with stops 2 and 3 skipped (NEXT then points at
+stop 2, not the airlock); panoramas layer switched off inside the 360 view; leaving stop 5 with
+a tube in the hand; leaving stop 4 holding the tube and in the middle of coring (sealed, counted
+once); Field Check LATER, reopened from the stand screen, tablet closed and opened half-way,
+an answered question tapped again, REVIEW; an early return with 2 of 4 stops; the skipped stops
+done late; the final debrief.
+
+Fixed:
+
+- B at the walk's start spot did nothing (the rover is 9.8 m away, B worked within 8 m), and a
+  tablet jump to the airlock lands exactly there. B now works within 12 m.
+- After LATER on the Field Check the card kept saying "Take the Field Check on the tablet",
+  but the tablet no longer showed it. The card now says "Select FIELD CHECK on the stand
+  screen: it opens on the tablet."
+- With `?tablet=0` stop 5 could never be done; without a tablet the four logged cores now
+  finish it.
+- Backdrop terrain: it was one 51,622-triangle mesh, always drawn whole. It is now 22 pieces
+  (8 compass sectors by 3 distance bands) that share one vertex buffer, so pieces behind the
+  viewer are culled. Same triangles, same look; `surround.mesh` is now a Group.
+
+Performance, emulated VR, triangles / draw calls summed over both eyes (new `b9a/perf.cjs`):
+
+| state | first view after arriving, before | same view, after | worst of 8 headings, after |
+| --- | --- | --- | --- |
+| cabin, briefing | not measured | 7,936 / 36 | 7,936 / 36 |
+| cabin, arrived (window view) | not measured | 12,008 / 32 | 12,008 / 32 |
+| cabin, debrief | not measured | 12,048 / 36 | one heading only |
+| outside, start spot | 302,308 / 298 | 244,716 / 314 | 262,832 / 314 |
+| stop 2, slope layer on | 301,692 / 286 | 245,640 / 314 | 263,252 / 314 |
+| stop 3, rover path on | 299,368 / 200 | 242,860 / 222 | 294,320 / 342 |
+| stop 4 | 288,736 / 154 | 233,388 / 172 | 289,280 / 396 |
+| stop 5, off the pad | 202,348 / 64 | 150,068 / 84 | 317,520 / 578 |
+| stop 5, inside the 360 view | not measured | 6,644 / 24 | 7,116 / 28 |
+
+- The one state over the ~300k guide is stop 5 off the pad when looking north-west across the
+  whole patch from its corner: 317,520 triangles and 578 draw calls (289 per eye), nearly all
+  terrain chunks. Not changed: it would mean retuning the viewer's level-of-detail distances.
+- Textures: 21 at most (in the 360 view). Largest: the panorama 4096 x 2048 and the photo
+  3316 x 3145; all others are UI canvases of 2400 x 252 or smaller. One panorama is held at a
+  time, plus the other after the first switch; both are freed on leaving the stop.
+- Over 30 still frames in every state: no canvas redraw (tablet, station card, cabin panels,
+  stand screen, HUD strip), no new texture, no new geometry.
+- Chrome's sampling heap profiler over 40 to 150 frames in five states (cabin, transit, start
+  spot, stop 3 pulse, 360 view; `b9a/alloc.cjs`): no allocation attributed to any function in
+  `src/`, except 7 bytes per frame during the transit. What remains comes from the emulator.
+
+Regressions after the changes: the merge walk-through 32 of 32 on desktop and in VR; step-5
+viewer regression (`&tablet=0`, emulated VR) 55 of 55; B2 reviewer desktop 20 of 20; B3
+reviewer desktop 32 of 32; B5 reviewer desktop 29 of 29; credits desktop 56 of 56; B4 reviewer
+desktop 46 of 47, B6 reviewer desktop 30 of 31 and B7 reviewer desktop 52 of 53 (the same known
+test-expectation failures as before). B8 reviewer tests now fail 2 (desktop) and 3 (VR) checks,
+all of them "B at the spawn does nothing" and the steps that follow it: the behaviour changed
+on purpose (first fix above); the tests were not edited.
+
+Not verified:
+
+- Anything on a real Quest 3S: frame rate, the 578-draw-call view at stop 5, legibility,
+  comfort, the panorama upload hitch.
+- Walking with W/A/S/D between stops (the runs use real teleports to stop 2 and onto the stop 5
+  pad, and tablet jumps for the long legs).
+- Mouse clicks with the mouse captured (pointer lock) on the door, the rover and the signs:
+  headless clicks were made with the pointer free.
+- The other VR regressions (B2 to B7 reviewer VR tests, credits VR) were not rerun after these
+  changes; the VR end-to-end run, the merge VR walk-through and the step-5 VR regression were.

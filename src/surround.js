@@ -30,6 +30,9 @@ import * as THREE from 'three';
 // surround is tinted with the photo's own brightness along the patch edge and
 // fades to the plain colour over `colorBlendM` metres (cosmetic).
 
+const CULL_SECTORS = 8; // compass sectors the surround is drawn in
+const CULL_BANDS = 3; // distance bands per sector (equal steps of log distance)
+
 function fetchOk(url) {
   return fetch(url).then((response) => {
     if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
@@ -322,17 +325,46 @@ export function createSurround(
   geometry.computeBoundingSphere();
   geometry.computeBoundingBox();
 
-  const mesh = new THREE.Mesh(
-    geometry,
-    material || new THREE.MeshStandardMaterial({ color: 0xb98a62, roughness: 1, metalness: 0 }),
-  );
+  // Drawn as CULL_SECTORS x CULL_BANDS pieces (compass sectors, each cut into
+  // distance bands) that share the vertex buffers, so the pieces behind the
+  // viewer are not drawn: one mesh this size would always be drawn whole.
+  const surroundMaterial = material || new THREE.MeshStandardMaterial({ color: 0xb98a62, roughness: 1, metalness: 0 });
+  const mesh = new THREE.Group();
   mesh.name = 'surround-terrain';
   mesh.matrixAutoUpdate = false;
+  const pieces = Array.from({ length: CULL_SECTORS * CULL_BANDS }, () => []);
+  for (let t = 0; t < indices.length; t += 3) {
+    let cx = 0;
+    let cz = 0;
+    for (let c = 0; c < 3; c++) {
+      cx += positions[indices[t + c] * 3] / 3;
+      cz += positions[indices[t + c] * 3 + 2] / 3;
+    }
+    const scale = Math.max(Math.abs(cx), Math.abs(cz), halfSize) / halfSize; // 1 at the patch edge
+    const band = Math.min(CULL_BANDS - 1, Math.floor((Math.log(scale) / Math.log(reach)) * CULL_BANDS));
+    const sector = Math.min(CULL_SECTORS - 1, Math.floor(((Math.atan2(cz, cx) + Math.PI) / (2 * Math.PI)) * CULL_SECTORS));
+    pieces[band * CULL_SECTORS + sector].push(indices[t], indices[t + 1], indices[t + 2]);
+  }
+  const corner = new THREE.Vector3();
+  for (const pieceIndices of pieces) {
+    if (!pieceIndices.length) continue;
+    const piece = new THREE.BufferGeometry();
+    for (const name of ['position', 'color', 'normal']) piece.setAttribute(name, geometry.attributes[name]);
+    piece.setIndex(pieceIndices);
+    const box = new THREE.Box3();
+    for (const v of pieceIndices) box.expandByPoint(corner.fromArray(positions, v * 3));
+    piece.boundingBox = box;
+    piece.boundingSphere = box.getBoundingSphere(new THREE.Sphere());
+    const part = new THREE.Mesh(piece, surroundMaterial);
+    part.name = 'surround-piece';
+    part.matrixAutoUpdate = false;
+    mesh.add(part);
+  }
 
   const joinCount = perRing;
   const joinMean = joinSum / joinCount;
   return {
-    mesh,
+    mesh, // a Group of pieces (see above); show or hide the whole surround with mesh.visible
     grid,
     offsetM,
     agreement,

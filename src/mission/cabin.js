@@ -81,7 +81,7 @@ const REPLAY_S = 8;
 const REPLAY_HOLD_S = 2;
 
 const ROVER_AT = { x: 3.4, z: -3.2 }; // the return marker (a small rover), in cabin metres: beside and behind the airlock pillar
-const RETURN_NEAR_M = 8; // B works within this distance of the marker (the walk's start spot is just outside it, so a stray B there does nothing)
+const RETURN_NEAR_M = 12; // B works within this distance of the marker: that includes the walk's start spot (9.8 m away), where a map jump to the airlock lands
 const RETURN_POINT_M = 40; // pointing works up to this far away
 const MARKER_HIT = { y: 1.6 }; // height of the marker's centre, for distances
 const MARKER_BOX = { halfW: 1.7, halfL: 2.75, height: 3.6 }; // the rover, padded, in its own metres
