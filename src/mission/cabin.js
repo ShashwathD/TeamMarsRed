@@ -81,9 +81,10 @@ const REPLAY_S = 8;
 const REPLAY_HOLD_S = 2;
 
 const ROVER_AT = { x: 3.4, z: -3.2 }; // the return marker (a small rover), in cabin metres: beside and behind the airlock pillar
-const RETURN_NEAR_M = 8; // B works within this distance of the marker
+const RETURN_NEAR_M = 8; // B works within this distance of the marker (the walk's start spot is just outside it, so a stray B there does nothing)
 const RETURN_POINT_M = 40; // pointing works up to this far away
-const MARKER_HIT = { y: 1.6, radius: 2.6 };
+const MARKER_HIT = { y: 1.6 }; // height of the marker's centre, for distances
+const MARKER_BOX = { halfW: 1.7, halfL: 2.75, height: 3.6 }; // the rover, padded, in its own metres
 
 const STAT_DEFAULTS = { stationsDone: 0, stationCount: 0, coresLogged: 0, coreCount: 5, slopeWarnings: 0, fieldCheck: null, distanceM: 0 };
 
@@ -912,6 +913,16 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
   // No tablet map jump (or any other mission move) out of the cabin: the door is the way out.
   mission.travelTo = (x, z, heading) => (state.inside && !ownMove ? false : travelTo(x, z, heading));
 
+  // The tablet works in the cabin, but its map cannot start a jump there
+  // (the tablet would charge the trip to the EVA clock before travelTo refuses).
+  if (mission.tablet) {
+    const tablet = mission.tablet;
+    const askJump = tablet.askJump;
+    const confirmJump = tablet.confirmJump;
+    tablet.askJump = (id) => (state.inside ? false : askJump.call(tablet, id));
+    tablet.confirmJump = () => (state.inside ? false : confirmJump.call(tablet));
+  }
+
   function placeInside() {
     local.set(STAND.x, 0, STAND.z);
     group.updateWorldMatrix(true, false);
@@ -1041,42 +1052,56 @@ export function createCabin({ mission, scene, camera, renderer, player, xr = nul
   // ---- pointing at the door and at the marker ------------------------------------------
   const rayOrigin = new THREE.Vector3();
   const rayDirection = new THREE.Vector3();
-  const toCentre = new THREE.Vector3();
   const mouse = { x: 0, y: 0 };
 
-  // Does the ray (world) hit the door slab? Slab test in cabin coordinates.
-  function rayHitsDoor() {
-    group.updateWorldMatrix(true, false);
-    local.copy(rayOrigin);
-    group.worldToLocal(local);
-    scratch.copy(rayDirection).transformDirection(scratch2.copy(group.matrixWorld).invert());
-    const lo = [-DOOR.halfW, 0, BACK_Z - 0.06];
-    const hi = [DOOR.halfW, DOOR.height, BACK_Z + 0.15];
-    const o = [local.x, local.y, local.z];
-    const d = [scratch.x, scratch.y, scratch.z];
+  // Does the ray (world) hit a box given in the object's own coordinates,
+  // within maxM metres? Slab test; no allocations.
+  const inverse = new THREE.Matrix4();
+  const lo = [0, 0, 0];
+  const hi = [0, 0, 0];
+  const o = [0, 0, 0];
+  const d = [0, 0, 0];
+  function rayHitsBox(object, maxM) {
+    object.updateWorldMatrix(true, false);
+    inverse.copy(object.matrixWorld).invert();
+    local.copy(rayOrigin).applyMatrix4(inverse);
+    scratch.copy(rayDirection).transformDirection(inverse);
+    local.toArray(o);
+    scratch.toArray(d);
     let near = 0;
-    let far = Infinity;
+    let far = maxM;
     for (let a = 0; a < 3; a++) {
       if (Math.abs(d[a]) < 1e-9) {
         if (o[a] < lo[a] || o[a] > hi[a]) return false;
         continue;
       }
-      let t0 = (lo[a] - o[a]) / d[a];
-      let t1 = (hi[a] - o[a]) / d[a];
-      if (t0 > t1) [t0, t1] = [t1, t0];
-      near = Math.max(near, t0);
-      far = Math.min(far, t1);
+      const t0 = (lo[a] - o[a]) / d[a];
+      const t1 = (hi[a] - o[a]) / d[a];
+      near = Math.max(near, Math.min(t0, t1));
+      far = Math.min(far, Math.max(t0, t1));
       if (near > far) return false;
     }
     return true;
   }
-  const scratch2 = new THREE.Matrix4();
-
+  function rayHitsDoor() {
+    lo[0] = -DOOR.halfW;
+    lo[1] = 0;
+    lo[2] = BACK_Z - 0.06;
+    hi[0] = DOOR.halfW;
+    hi[1] = DOOR.height;
+    hi[2] = BACK_Z + 0.15;
+    return rayHitsBox(group, Infinity);
+  }
+  // The rover's own box (a little padded), not the ground around it, so a
+  // teleport aimed beside the rover is still a teleport.
   function rayHitsMarker() {
-    toCentre.copy(markerCentre).sub(rayOrigin);
-    const along = toCentre.dot(rayDirection);
-    if (along < 0 || along > RETURN_POINT_M) return false;
-    return toCentre.lengthSq() - along * along <= MARKER_HIT.radius * MARKER_HIT.radius;
+    lo[0] = -MARKER_BOX.halfW;
+    lo[1] = 0;
+    lo[2] = -MARKER_BOX.halfL;
+    hi[0] = MARKER_BOX.halfW;
+    hi[1] = MARKER_BOX.height;
+    hi[2] = MARKER_BOX.halfL;
+    return rayHitsBox(rover, RETURN_POINT_M);
   }
 
   // A trigger pull / click along the current ray that no panel took. True if used.
