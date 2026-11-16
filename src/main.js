@@ -118,6 +118,15 @@ async function start() {
   player.setPosition(startLocal.x, startLocal.z);
   player.setHeading(0); // face north
 
+  // Frame-time readout, drawn in the scene so it also shows in VR.
+  // F on desktop, A/B/X/Y on a controller; ?frametime=1 starts with it on.
+  const frameMeter = createFrameMeter();
+  const xr = createXR({ renderer, scene, camera, player, patch, frameMeter });
+  if (new URLSearchParams(window.location.search).get('frametime') === '1') frameMeter.setVisible(true);
+  window.addEventListener('keydown', (event) => {
+    if (event.code === 'KeyF' && !event.repeat) frameMeter.toggle();
+  });
+
   // The Marswalk mission (route, beacons, rover traverse) on patches that have
   // one; ?mission=0 leaves it out. The walk then starts on the route a few
   // metres from the mission's start marker (the airlock), facing along the route.
@@ -126,7 +135,19 @@ async function start() {
   let missionNote = '';
   if (MISSION_SITES.includes(site) && params.get('mission') !== '0') {
     try {
-      mission = await createMission({ site, patch, scene, renderer, camera });
+      mission = await createMission({
+        site,
+        patch,
+        scene,
+        renderer,
+        camera,
+        player,
+        xr,
+        terrain,
+        surround,
+        photo,
+        tablet: params.get('tablet') !== '0', // ?tablet=0: no forearm tablet, controller buttons as in the plain viewer
+      });
       player.setPosition(mission.spawn.x, mission.spawn.z);
       player.setHeading(mission.spawn.headingDeg);
     } catch (error) {
@@ -139,15 +160,6 @@ async function start() {
   const debug = new URLSearchParams(window.location.search).get('debug') === '1';
   const northMarker = debug ? createNorthMarker(patch, player.position.x, player.position.z) : null;
   if (northMarker) scene.add(northMarker);
-
-  // Frame-time readout, drawn in the scene so it also shows in VR.
-  // F on desktop, A/B/X/Y on a controller; ?frametime=1 starts with it on.
-  const frameMeter = createFrameMeter();
-  const xr = createXR({ renderer, scene, camera, player, patch, frameMeter });
-  if (new URLSearchParams(window.location.search).get('frametime') === '1') frameMeter.setVisible(true);
-  window.addEventListener('keydown', (event) => {
-    if (event.code === 'KeyF' && !event.repeat) frameMeter.toggle();
-  });
 
   const resize = () => {
     if (renderer.xr.isPresenting) return; // the headset sets the size in VR
@@ -180,6 +192,7 @@ async function start() {
 
   setStatus(
     `${site}: click to look around, WASD to walk, Shift to run, hold T (or right mouse) to aim a teleport and release to jump, Esc to release the mouse, F for frame time. ` +
+      (mission && mission.tablet ? 'Tab (or Y) for the tablet: map, notebook, layers, help. ' : '') +
       'In VR: hold trigger to aim, release to teleport; thumbstick left/right to turn' +
       (photo ? '' : ' (no photo for this patch)') +
       surroundNote +

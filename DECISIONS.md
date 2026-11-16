@@ -298,3 +298,104 @@ cap is faster than that. It stays as the brief's ASSUMPTION and is labelled so; 
   strip, and nothing depends on them.
 - **Cost**: 130 triangles, 2 draw calls (3 while a flash shows), two canvas textures (2400 x 252
   and 1024 x 208).
+
+## Mission B4: forearm tablet, layers, map teleport
+
+- **UI kit (`src/mission/ui.js`)**: a panel is a flat mesh with a canvas texture; its owner draws
+  on the canvas and names the rectangles that can be tapped. A pointer ray is tested against the
+  panels with plane maths (no scene raycast, no allocations). The canvas is uploaded only when its
+  content changes. Hovering lights a separate see-through quad over the button, so pointing at
+  things never redraws or uploads a canvas. Later cards, the Field Check, the cabin console and
+  the debrief are meant to use the same kit.
+- **A press fires on trigger down**, not on release: with the tablet on the other arm, both hands
+  move a little, and "release on the same button" would miss often.
+- **Tablet before teleport**: a trigger press whose ray lands anywhere on a panel (button or not)
+  is used up by the panel; no teleport aim starts and the release does nothing. `xr.js` only
+  offers the hook (`xr.hooks.select`), it knows nothing about the tablet.
+- **Where the tablet is worn**: on the left controller's pointing-ray space, not its grip space.
+  On Touch controllers the grip space is pitched 45 degrees from the pointing ray (values in the
+  iwer emulator's Quest profile), and the pointing ray is the direction that runs along the
+  forearm with a straight wrist. The screen centre is 0.25 m back from the ray origin, 7.5 cm
+  above the arm, and tilted 30 degrees toward the body. This pose is a reasoned guess: it is
+  right in the emulator for a forearm raised across the chest, and has not been tried on a
+  person's arm.
+- **Y or a look**: Y on the left controller pins the screen on or off. Without Y, the screen
+  lights after the explorer has looked at the tablet for 0.3 s (within 20 degrees of the view
+  centre, closer than 0.8 m, screen facing the eyes) and goes dark 0.6 s after they look away
+  (38 degrees). After Y turned it off it stays off until it has been looked away from. The slate
+  itself is always on the arm in VR; only the screen switches.
+- **Desktop**: Tab or Y slides the tablet up in front of the camera (it is a child of the camera
+  there; the "nothing locked to the head" rule is about VR) and frees the mouse so the buttons
+  can be clicked. A click that lands on the tablet does not capture the mouse. After a map
+  teleport the desktop tablet closes to show the new place; in VR it stays lit.
+- **Text size**: screen 0.34 m x 0.238 m, canvas 1280 x 896, so 1 px is 0.266 mm. Nothing is
+  drawn smaller than 42 px: 11.2 mm of font size, 1.4 degrees at 0.45 m (capital letters about
+  8 mm, 1.0 degree). The brief's "about 1.2 degrees" is read as font size. Five layer chips do
+  not fit one screen at that size, so LAYERS has two pages of chips and a third page of credits.
+- **Controller buttons with the mission loaded**: left Y is the tablet, right A is kept for scan
+  and right B for the airlock door (they do nothing until those steps exist), left X is the only
+  button left for the frame-time readout. `?tablet=0` loads the mission without the tablet and
+  leaves all four buttons on the frame-time readout, as in the plain viewer. The step-5
+  regression test presses A and Y for the readout, so it is now run with `&tablet=0`.
+- **Map**: the real photo of the patch (736 px for 2000 m), tinted to the same surface colour as
+  the ground, north up, with the planned route, the rover path and sample sites drawn from the
+  mission file, and the slope bands when that layer is on. Two stops are closer on the map than a
+  finger-sized pin (the airlock and stop 2 are 62 m, 23 px, apart), so pins closer than 70 px are
+  pushed apart and a line leads to the true place; the same stops are also a list of large
+  buttons beside the map. Sample sites lie under the pins of stops 4 and 5 at this scale, so
+  those pins get an amber ring instead.
+- **You-are-here** is a small arrow mesh on top of the screen (position from the head, direction
+  from where the head looks), so walking and turning cost no canvas upload.
+- **What a map teleport costs**: the walking time of the route distance (brief). In detail: the
+  straight walk from where the explorer stands to the nearest point of the planned route, then
+  the route to the landing point, the quicker way round the loop (straight through the route
+  points between, or the other way past the airlock). Where the route runs out and back over the
+  same ground, route points within 3 m of the nearest are tried too and the cheapest wins. The
+  confirm box shows the time rounded up to whole minutes and the metres; the clock is charged the
+  exact seconds, once (`clock.charge` then `clock.moveCharged`).
+- **Where it lands**: on the route, the last route point at least 5 m before the stop (5 to 8 m
+  from it), looking at the stop, so the explorer is not put inside the beacon. In VR the room is
+  turned about the head so the view faces the stop.
+- **Layers** (`src/mission/layers.js`): names and credits are the mission file's `layers` list.
+  Photo off draws the ground in the plain surface colour with its real shape. The slope hazard is
+  a 1000 x 1000 one-byte texture (4 steps per degree) made from the same slope grid the route
+  planner uses, sampled in the ground shader: amber from 10 degrees, red above 15 (from the
+  mission file), mixed 62% over the lit ground. Both are uniforms, so switching does not
+  recompile the shader. Default: slope off, everything else on.
+- **Layer behaviour (the brief's section added on 2026-11-15, done in the B4 review)**:
+  - Each chip has an eye (open = on, shut with a stroke = off) and an "i". Tapping the chip
+    anywhere else switches the layer; the "i" swaps the credit lines for a one-line explanation
+    and back. The explanations are short rewordings of the brief's layer list; their numbers
+    (10, 15) and stop numbers come from the mission file.
+  - The slope chip carries its legend (amber and red squares with the limits) and the note that
+    15 degrees is an ASSUMPTION.
+  - Rover traverse: the chip is on from the start and puts the path and its stops on the MAP. In
+    the world the orange line stays hidden until `mission.layerSet.reveal('traverse')` is called;
+    stop 3 (B6) must call it. Until then the chip says "map only until stop 3". After the reveal
+    the chip switches the map and the world together. This changed B2's start-up picture (the
+    orange line was visible from the start) and two checks of B2's own test.
+  - Rover stops: `tools/build_mission.py` now also writes `traverse.waypoints` (the 43 waypoints
+    of `data/stops/m20.json` inside the patch; nothing else in the mission file changed). They are
+    small dots on the MAP and small six-sided studs on the ground (40, because some share a spot;
+    960 triangles, one draw call, shown and hidden with the line).
+  - Sample sites: every site in the mission file is at stop 4 or stop 5, so those are the only
+    markers. Each has a three-sided sign reading "APPROXIMATE POSITION" on its tall post (one
+    512 x 232 texture and one 18-triangle mesh for all three), readable from any side.
+  - Panoramas: a camera icon beside the pin of the stop that has panoramas (stop 5) and in the map
+    key. The chip only keeps its state for B7.
+  - Backdrop terrain: no chip, always on, credited on the credits page as "(always on)".
+    `mission.setLayer('backdrop', ...)` still exists for code (the cabin step may need it).
+  - Credits page: "Missions covered" and every layer's source, all from the mission file.
+- **Desktop teleport and the tablet**: while the tablet is up, T and the right mouse button start
+  no teleport aim (`xr.hooks.desktopAim`); the aim ray would go through the tablet.
+- **Sample-site markers**: a ring of six low-poly stakes, 2.6 m in radius, around each rover
+  waypoint where a core in the mission file was taken (three places for five cores). A ring and
+  not a pin because the positions are approximate, and because Berea's waypoint is exactly where
+  the stop 4 beacon stands. They are in their own scene group (`mission-layer-objects`), not in
+  `mission.group`, so `mission.stats()` still counts only the route, the rover path and the beacons.
+- **Surface panoramas switch**: it keeps its state (`mission.layerVisible('panoramas')`) but
+  shows nothing yet; the panoramas come with S5.
+- **Cost**: tablet 128 triangles, 2 draw calls lit (plus 1 for the arrow, 1 for the hover light,
+  and a dot and a beam per pointing controller), one 1280 x 896 canvas texture; sample markers
+  516 triangles, 1 draw call, plus the signs (18 triangles, 1 draw call) and, once shown, the
+  rover stop studs (960 triangles, 1 draw call); slope map 1 MB plus mipmaps.

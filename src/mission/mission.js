@@ -5,6 +5,9 @@ import { createHud } from './hud.js';
 import { buildRibbonGeometry, createRibbon } from './ribbon.js';
 import { createBeacons } from './beacons.js';
 import { PALETTE } from './lowpoly.js';
+import { createLayers } from './layers.js';
+import { attachDesktopPointer, createUi } from './ui.js';
+import { createTablet } from './tablet.js';
 
 // The Jezero Marswalk mission: single entry point, loaded from main.js.
 // Later build steps (clock, tablet, stations, cabin) extend this module.
@@ -62,7 +65,11 @@ function laneShifts(points, shiftM) {
   return shifts;
 }
 
-export async function createMission({ site, patch, scene, renderer, camera }) {
+// Needed: site, patch, scene. renderer + camera add the HUD; player (the rig
+// from controls.js) and xr (xr.js) add the tablet and its input; terrain,
+// surround and photo let the LAYERS tab switch the ground layers.
+// tablet: false leaves the tablet and the controller-button mapping out.
+export async function createMission({ site, patch, scene, renderer, camera, player = null, xr = null, terrain = null, surround = null, photo = null, tablet: wantTablet = true }) {
   const url = `./data/mission/${site}.json`;
   const response = await fetch(url);
   if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
@@ -156,7 +163,19 @@ export async function createMission({ site, patch, scene, renderer, camera }) {
   group.add(beacons.group);
   scene.add(group);
 
-  const layers = { route, traverse, beacons: beacons.group };
+  // Data layers the tablet switches (photo, slope hazard, rover path, sample
+  // sites, panoramas, backdrop), and the scene objects behind them.
+  const layerSet = createLayers({
+    data,
+    patch,
+    routeGrid,
+    terrain,
+    surround,
+    traverse,
+    scene,
+    anisotropy: renderer ? Math.min(4, renderer.capabilities.getMaxAnisotropy()) : 1,
+  });
+  const layers = { route, traverse, beacons: beacons.group, samples: layerSet.samples };
 
   // ---- EVA clock and HUD (brief: SYSTEMS) --------------------------------
   const clock = createClock({ rg: routeGrid, pace, assumptions: data.assumptions, routePoints, airlock: data.start });
@@ -172,6 +191,24 @@ export async function createMission({ site, patch, scene, renderer, camera }) {
   const walkOrder = data.route.order.filter((id) => id !== 'START');
   const progress = { nextId: walkOrder[0] || null };
   const slopeWarnings = { amber: 0, red: 0 };
+  // Field notebook (the tablet's LOG tab). Later steps add entries as the walk goes.
+  const log = {
+    entries: [], // { title, lines[], station, atS (EVA seconds when written) }
+    onChange: null,
+    add({ title, lines = [], station = null }) {
+      const entry = { title: String(title), lines: lines.map(String), station, atS: clock.elapsedS };
+      log.entries.push(entry);
+      if (log.onChange) log.onChange(entry);
+      return entry;
+    },
+    clear() {
+      log.entries.length = 0;
+      if (log.onChange) log.onChange(null);
+    },
+  };
+  // Things the action buttons do (A / E: scan, B: airlock door). Later steps fill these in.
+  const actions = { scan: null, door: null };
+  const lookDirection = new THREE.Vector3();
   let cautionLevel = 0; // 0 ok, 1 amber, 2 red; falls back only once clearly off the steep ground
   let sinceSlopeFlashS = Infinity;
   let lastTimeS = null;
@@ -195,6 +232,32 @@ export async function createMission({ site, patch, scene, renderer, camera }) {
     telemetry,
     progress,
     slopeWarnings,
+    layerSet,
+    log,
+    actions,
+    ui: null,
+    tablet: null,
+
+    // Puts the explorer at (x, z), looking along headingDeg (clockwise from
+    // north) if given. Does not touch the clock: the caller charges the trip
+    // (clock.charge) and then calls clock.moveCharged. False if it cannot move there.
+    travelTo(x, z, headingDeg) {
+      if (!player) return false;
+      if (renderer && renderer.xr.isPresenting) {
+        if (!player.moveHeadTo(x, z)) return false;
+        if (headingDeg !== undefined) {
+          camera.getWorldDirection(lookDirection);
+          if (Math.hypot(lookDirection.x, lookDirection.z) > 0.2) {
+            const yaw = THREE.MathUtils.radToDeg(Math.atan2(lookDirection.x, -lookDirection.z));
+            player.turnAboutHead(headingDeg - yaw); // turn the room, about the head, so the view faces that way
+          }
+        }
+        return true;
+      }
+      if (!player.setPosition(x, z)) return false;
+      if (headingDeg !== undefined) player.setHeading(headingDeg);
+      return true;
+    },
 
     // Which station the HUD's "NEXT" points at: a station id, 'START' (the
     // airlock) or null for none. Later steps call this as stations are done.
@@ -211,12 +274,15 @@ export async function createMission({ site, patch, scene, renderer, camera }) {
       return fillPlaceholders(card.text, values);
     },
 
+    // 'photo' | 'slope' | 'traverse' | 'samples' | 'panoramas' | 'backdrop'
+    // (the tablet's LAYERS tab), and 'route' | 'beacons'.
     setLayer(id, visible) {
+      if (layerSet.has(id)) return layerSet.set(id, visible);
       if (!layers[id]) return false;
       layers[id].visible = !!visible;
       return true;
     },
-    layerVisible: (id) => !!(layers[id] && layers[id].visible),
+    layerVisible: (id) => (layerSet.has(id) ? layerSet.get(id) : !!(layers[id] && layers[id].visible)),
 
     // Plans the route again in the page (A* over the terrain) instead of
     // using the stored line. For checks and for later steps that need routes
@@ -280,6 +346,18 @@ export async function createMission({ site, patch, scene, renderer, camera }) {
       telemetry.nextId = nextId;
       telemetry.nextDistanceM = target ? Math.hypot(target.x - viewer.x, target.z - viewer.z) : NaN;
 
+      // Tablet and pointers: the desktop mouse, or each VR controller's ray.
+      if (ui) {
+        if (tablet) tablet.update(dt, viewer);
+        desktopPointer.update();
+        const presenting = renderer.xr.isPresenting && xr;
+        for (let i = 0; i < 2; i++) {
+          if (presenting && xr.controllers[i].userData.handedness) ui.setPointerFromObject(1 + i, xr.controllers[i]);
+          else ui.clearPointer(1 + i);
+        }
+        ui.update();
+      }
+
       if (!hud) return;
       telemetry.headingDeg = (hud.follow.headYawDeg + 360) % 360;
       const v = hud.values;
@@ -302,5 +380,54 @@ export async function createMission({ site, patch, scene, renderer, camera }) {
       hud.update(dt, viewer);
     },
   };
+
+  // ---- tablet, pointers and buttons (brief: TABLET, CONTROLS) --------------
+  let ui = null;
+  let tablet = null;
+  let desktopPointer = null;
+  if (camera && renderer) {
+    ui = createUi({ scene });
+    desktopPointer = attachDesktopPointer(ui, { camera, renderer });
+    mission.ui = ui;
+    if (player && wantTablet) {
+      tablet = createTablet({ mission, ui, scene, camera, renderer, player, xr, patch, photo });
+      mission.tablet = tablet;
+    }
+    if (xr) {
+      // A trigger press that lands on a panel is used there and starts no teleport.
+      xr.hooks.select = (controller, phase) => {
+        if (phase !== 'start') return false;
+        const index = 1 + xr.controllers.indexOf(controller);
+        ui.setPointerFromObject(index, controller);
+        return ui.press(index);
+      };
+      // Desktop: with the tablet up in front of the view, T / right mouse aims no teleport through it.
+      if (tablet) xr.hooks.desktopAim = () => tablet.open;
+      if (tablet) {
+        // Left Y: tablet. Right A: scan. Right B: airlock door. (Left X stays the frame-time readout.)
+        xr.hooks.button = (handedness, index) => {
+          if (handedness === 'left' && index === 5) {
+            tablet.toggle();
+            return true;
+          }
+          if (handedness === 'right') {
+            const action = index === 4 ? actions.scan : actions.door;
+            if (action) action();
+            return true;
+          }
+          return false;
+        };
+      }
+    }
+    if (tablet) {
+      // Desktop: E scans, B is the airlock door (Tab / Y for the tablet are in tablet.js).
+      window.addEventListener('keydown', (event) => {
+        if (event.repeat || renderer.xr.isPresenting) return;
+        if (event.code === 'KeyE' && actions.scan) actions.scan();
+        else if (event.code === 'KeyB' && actions.door) actions.door();
+      });
+    }
+  }
+
   return mission;
 }

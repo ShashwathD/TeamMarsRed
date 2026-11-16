@@ -538,3 +538,80 @@ Known problems:
   the HUD adds about 250).
 - Still open from earlier steps: which way the panoramas face (B7), 3.3 km/h against NASA's about
   2 km/h, `{extra_min}` 0.2, `{station_count}` 4.
+
+## Mission B4: forearm tablet, layers, map teleport
+
+What was done:
+
+- A low-poly tablet. On desktop Tab or Y slides it up and frees the mouse; in VR it is worn on
+  the left controller and its screen lights with Y (left) or by looking down at it.
+- Four tabs. MAP: the real photo with the planned route, the rover path and its stops, sample
+  sites, a camera icon where panoramas are, a pin and a list button per stop, and a
+  you-are-here arrow. Tapping a stop asks first and shows the cost; GO moves you there and
+  charges the clock the walking time along the route, once. LOG: empty for now. LAYERS: one chip
+  per layer with an eye (on or off), an "i" (one-line explanation), mission, instrument and
+  source; the last page is the credits. HELP: Quest and desktop controls.
+- A small UI kit (`src/mission/ui.js`) that later cards, the Field Check, the cabin console and
+  the debrief can reuse.
+- The right controller's ray and trigger tap the tablet. A press that lands on the tablet never
+  starts a teleport. On desktop, T does not aim a teleport while the tablet is up.
+- Slope hazard overlay on the ground: amber from 10 to 15 degrees, red above 15, limits read
+  from the mission file.
+- The review brought the tablet into line with the brief's new "layer behaviour" section: eye
+  icons, "i" explanations, no chip for the backdrop terrain (always on, credited), the rover
+  path hidden on the ground until stop 3 turns it on (it is on the map from the start), dots at
+  the 43 rover stops, an "APPROXIMATE POSITION" sign at each sample site, a camera icon at
+  stop 5, and a credits page.
+- The mission data tool now also writes the rover stops into the mission file. Nothing else in
+  that file changed.
+
+Measured (headless Chromium with software rendering; VR emulated with iwer):
+
+- Reviewer's desktop test 47 of 47, reviewer's emulated-VR test 17 of 17. Builder's desktop test,
+  updated for the new section, all 60 checks pass; builder's VR test unchanged 26 of 26.
+- Teleport cost checked against sums made from the raw terrain file: 1371.1 s from the start to
+  stop 5, 521.0 s to stop 3 in VR; the clock was charged exactly that, once.
+- The slope map's red share is 13.1%, the same as my own slope of the terrain file.
+- Rover stops: 43 in the mission file, the same 43 from my own conversion of the waypoint file
+  (worst difference 6 mm).
+- Smallest text 42 px = 11.2 mm = 1.4 degrees at 0.45 m. No text cut short, off-screen or
+  overlapping on any tab or page.
+- Whole scene about 207,000 to 242,000 triangles depending on where you stand. Tablet 128
+  triangles, sample markers and signs 534, rover stop studs 960.
+- 25 frames with the tablet open: no canvas redraw, no new textures or geometries.
+- I looked at 9 desktop and 4 VR screenshots: text fits, the tablet faces the eyes and reads
+  upright on the raised arm, signs and studs sit on the ground.
+
+Earlier tests:
+
+- Step-5 regression, unchanged: 54 of 55. The one failure is "A shows the frame meter": with
+  the mission loaded, A is now kept for scan. With `&tablet=0` it is 55 of 55.
+- B2 builder test: 22 of 24. Both failures come from the rover path now being hidden at the
+  start, as the new section asks. B2 reviewer test, B3 builder and reviewer tests: all pass.
+
+Not verified:
+
+- Nothing ran on a real Quest 3S. Where the tablet sits on a real forearm, whether the look-down
+  timing feels right, legibility in the headset, the cost of redrawing the screen on a tap, and
+  the frame rate are all untested there.
+- The tablet's place on the arm is a reasoned guess from the emulator's controller profile.
+
+Known problems:
+
+- The uncommitted "layer behaviour" section of the brief appeared during this step. Neither the
+  builder nor I wrote it; I followed it and committed it with this step. The team should
+  confirm it is theirs.
+- Stop 3 (B6) must call `mission.layerSet.reveal('traverse')`, or the rover path never shows on
+  the ground.
+- A, B, E and the grip do nothing yet; later steps fill them in. The panoramas chip only changes
+  the camera icon on the map until B7.
+- The teleport cost takes the quicker way round the loop, so from the start stop 5 is priced
+  backward along the last leg (23 min) and not through stops 2 to 4 (40 min).
+- A map teleport lands 5 to 8 m short of the stop and does not move "NEXT" on; that is B5's job.
+- With no left controller in VR the tablet cannot be opened by the user (Y and the look-down both
+  need it). The floating fallback works when opened by code.
+- In VR the frame-time readout (a developer tool) sits on the left controller and may overlap
+  the tablet. On a 1280 x 720 desktop window the status line overlaps the tablet's top nub.
+- From some angles a short stake stands in front of a sample site's sign.
+- In emulated VR about 302,000 triangles are drawn over both eyes at the start (about 151,000
+  per eye), at the guide.

@@ -158,3 +158,27 @@ holder, return marker) must have a deliberately low-poly, charming style:
 Any step that touches an object built by an earlier step should bring it into this style. B9 must check
 every object against this section and fix what does not match.
 ```
+
+## Added by the team on 2026-11-15, after the brief above: tablet layer behaviour (binding; overrides the shorter LAYERS line above where they differ)
+
+```text
+LAYER BEHAVIOUR (tablet LAYERS tab; one chip per layer; point + trigger toggles; each chip shows an eye icon
+for on/off, the mission, the instrument and the source; tapping the "i" shows a 1-line explanation)
+1 Photo (MRO HiRISE 25 cm): ON by default. It is the terrain texture. Off = plain shaded relief.
+2 Terrain and slope hazard (USGS HiRISE terrain model): OFF by default. A translucent overlay on the
+  ground: amber 10-15 degrees, red above 15, clear below 10. Legend on the chip. 15 degrees = ASSUMPTION.
+3 Rover traverse (Mars 2020, NASA/JPL MMGIS): ON by default in the tablet MAP, OFF in the world until S3.
+  Orange line draped on the ground, with small dots at rover stops inside the patch.
+4 Sample sites (NASA Mars Rock Samples): ON in the tablet MAP; in the world, a small marker only at stations
+  S4 and S5. Labelled "approximate position".
+5 Surface panoramas (Mars 2020 Navcam): ON in the MAP as camera icons at S5; the 360 view opens only there.
+6 Backdrop terrain (MRO CTX, 20 m): always ON, no chip, credited in the LAYERS tab.
+Route (blue ribbon) is not a layer: always visible in the world and the MAP.
+The LAYERS tab also lists the missions covered (MRO, Mars 2020 Perseverance) and the full credits.
+Performance: overlays are textures or lines on the existing terrain, no extra geometry beyond markers.
+
+Note for whichever step is running when this was added: the tablet may already have been built to the
+shorter description. The reviewer of that step, and every later step that touches layers, must bring the
+LAYERS tab, the MAP and the in-world defaults into line with this section (including: traverse off in
+the world until S3 turns it on; backdrop terrain has no chip; "i" one-line explanations; eye icons).
+```
