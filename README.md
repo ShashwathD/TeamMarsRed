@@ -27,11 +27,41 @@ To make or refresh it (needs Python 3 with numpy and Pillow):
 python3 tools/stitch_mosaic.py jezero jezero_delta
 ```
 
-Controls: click the page to capture the mouse and look around, `W` `A` `S` `D`
-to walk, hold `Shift` to run, arrow keys also turn and walk, `Esc` releases the
-mouse, `F` shows the frame time. Add `debug=1` to the address (for example
-`?debug=1` or `?site=jezero&debug=1`) to show a red pole with an "N" sign 60 m
-due north of the start point; it is hidden otherwise.
+## Controls
+
+Every VR action has a desktop key. "planned" marks what the brief specifies but this branch's code
+does not do yet (mission steps B5 to B8 were being built on other branches when this was written);
+re-check these rows after the merge.
+
+| Action | Quest 3S | Desktop | State |
+|---|---|---|---|
+| Look | turn your head | click the page to capture the mouse; `Esc` releases it | works |
+| Walk | (teleport only) | `W` `A` `S` `D` or arrow keys; hold `Shift` to run | works |
+| Teleport | hold the right trigger on open ground to aim, release to jump | hold `T` or the right mouse button, release to jump | works |
+| Turn | right thumbstick left / right (snap turn) | mouse, or left / right arrow | works |
+| Select / confirm (tablet buttons, cards, DEPART, coring at the marked rock) | point the right controller, press the trigger | mouse click | works for the tablet; the rest planned |
+| Tablet on / off | `Y` on the left controller, or look down at your left forearm | `Tab` or `Y` | works |
+| Scan at a station | `A` | `E` | key is wired (`mission.actions.scan`); the scan itself is planned |
+| Airlock door | `B`, or point at the door and press the trigger | `B`, or click the door | key is wired (`mission.actions.door`); the door is planned |
+| Hold a sample tube | right grip | `G` | planned |
+| Frame-time readout | `X` on the left controller | `F` | works |
+
+Without the mission (`?mission=0`, `?tablet=0`, or a site other than `jezero_delta`) the `A`, `B`,
+`X` and `Y` buttons all toggle the frame-time readout. There is no smooth walking in VR: teleport
+and snap turn only.
+
+## URL flags
+
+Add them to the address after `?`, joined with `&` (for example `?site=jezero&debug=1`).
+
+| Flag | What it does | State |
+|---|---|---|
+| `site=<name>` | Terrain patch: a folder under `data/walk/` (`jezero_delta` is the default, `jezero`, `gale`). The mission exists only for `jezero_delta`. | works |
+| `debug=1` | Shows a red pole with an "N" sign 60 m due north of the start point, for checking orientation. | works |
+| `frametime=1` | Starts with the frame-time readout on. | works |
+| `tablet=0` | Mission without the forearm tablet. | works |
+| `mission=0` | Plain terrain viewer: no mission, start at the patch centre. | works |
+| `skipcabin=1` | Start outside on the surface instead of in the rover cabin. | planned (cabin step B8) |
 
 Publishing and headset checks: `PUBLISH.md`. Data and software credits: `CREDITS.md`.
 Screenshots of the delta and where they were taken: `docs/screenshots/`.
@@ -59,6 +89,7 @@ Screenshots of the delta and where they were taken: `docs/screenshots/`.
 - `src/mission/hud.js` - suit HUD: a strip in the scene that trails behind head turns, and short flashes
 - `src/mission/ui.js` - UI kit: canvas panels with tappable regions, ray picking for controllers and the mouse
 - `src/mission/tablet.js` - forearm tablet: MAP (with teleport to a stop), LOG, LAYERS, HELP
+- `src/mission/credits.js` - the credits as data (from the mission file, plus fixed lines that repeat `CREDITS.md`) and as paged canvas text; used by the tablet's LAYERS tab, and `createCreditsPanel` gives a stand-alone panel
 - `src/mission/layers.js` - data layers the tablet switches: photo, slope hazard, rover path and stops, sample sites, panoramas (the backdrop is always on)
 - `tools/build_mission.py` - builds `data/mission/<site>.json`; plans the route through `tools/route_cli.mjs` (needs Node.js)
 
@@ -72,8 +103,9 @@ it, and the right controller's ray and trigger tap its buttons. MAP shows the wh
 photo, where you are, and a pin per stop: tap a pin, confirm, and you are taken there for the
 walking time of the route distance. LAYERS has one chip per layer (photo, slope hazard in amber
 10 to 15 degrees and red above 15, rover path, sample sites, panoramas): the eye switches it, the
-"i" gives a one-line explanation, and the last page lists the missions and all credits (the
-distant terrain is always on and is credited there). The rover path is on the map from the start
+"i" gives a one-line explanation, and the pages after the chips are the CREDITS: missions
+covered, every data layer (the always-on distant terrain too), the fact sources, what is assumed
+or simulated, the software and the AI-assistance note. The rover path is on the map from the start
 but appears on the ground only when stop 3 turns it on. HELP lists the controls. `E`, `B` and `G` (scan, airlock door, hold a tube) are
 listed there but belong to later steps. Add `tablet=0` to the address to leave the tablet out
 (the controller buttons then all toggle the frame time, as in the plain viewer).
@@ -100,6 +132,7 @@ Since B4: `setLayer` also takes `'photo' | 'slope' | 'samples' | 'panoramas' | '
 `waitingFor(id)`, `reveal('traverse')` for stop 3), `log` (`add({ title, lines,
 station })`, `entries`), `travelTo(x, z, headingDeg)`, `actions` (`scan`, `door`: set by later
 steps), `ui` (the panel manager) and `tablet` (`setOpen`, `toggle`, `setTab`, `askJump(id)`,
-`confirmJump()`, `cancelJump()`, `cost(id)`, `targets`, `state`, `panel`, `stats()`).
+`confirmJump()`, `cancelJump()`, `cost(id)`, `targets`, `state`, `panel`, `stats()`,
+`credits`, `showCredits()`).
 
 Design choices and the measurements behind them are in `DECISIONS.md`.

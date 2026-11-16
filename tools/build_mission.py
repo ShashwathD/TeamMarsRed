@@ -277,7 +277,7 @@ for key in PANORAMAS:
             "position": place(x, z),
             "positionBasis": f"rover waypoint site {site_id} drive {drive} (data/stops/m20.json)",
             "samples": sorted(a["number"] for a in activities.values() if a.get("feature") == feature[0]),
-            "credit": "NASA/JPL-Caltech, Mars 2020 Navcam, stitched by the team",
+            "credit": "NASA/JPL-Caltech, Mars 2020 Navcam raw images, stitched with Team Protikriti's pipeline (docs/data-sources.md)",
         }
     )
 
@@ -612,6 +612,10 @@ cards = {
         extra=[SAMPLES_SOURCE],
         coreLocations=s5a_locations,
         coreLocationsNote=f"Where each tube is now, from NASA's list (retrieved {DATA_RETRIEVED})",
+        # Content rule 5: sample positions are approximate; the card text above is the brief's and does not say so.
+        positionNote="Positions are approximate (rover waypoints, sols "
+        + " and ".join(str(v) for v in sorted({core_by_number[n]["waypointSol"] for n in RIDGE_SAMPLES}))
+        + ").",
     ),
     "S5B": {
         "title": "Igneous vs sedimentary",
@@ -678,7 +682,7 @@ LAYERS = [
         "note": "Slope derived by us; the 15 degree limit is an ASSUMPTION",
     },
     {"id": "traverse", "name": "Rover traverse", "mission": "Mars 2020 Perseverance", "instrument": "Rover localization", "source": "NASA/JPL MMGIS", "note": ""},
-    {"id": "samples", "name": "Sample sites", "mission": "Mars 2020 Perseverance", "instrument": "Sampling and caching system", "source": "NASA Mars Rock Samples", "note": "Positions approximate (rover waypoint at that sol)"},
+    {"id": "samples", "name": "Sample sites", "mission": "Mars 2020 Perseverance", "instrument": "Sampling and caching system", "source": "NASA Mars Rock Samples", "note": "Positions approximate (rover waypoint at that sol)", "retrieved": DATA_RETRIEVED},
     {"id": "panoramas", "name": "Surface panoramas", "mission": "Mars 2020 Perseverance", "instrument": "Navcam", "source": "Mars 2020 Navcam", "note": ""},
     {"id": "backdrop", "name": "Backdrop terrain", "mission": "Mars Reconnaissance Orbiter (MRO)", "instrument": "CTX", "source": "MRO CTX, 20 m", "note": ""},
 ]

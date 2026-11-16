@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { PALETTE, css, lowPolyMaterial, mergeParts } from './lowpoly.js';
 import { THEME, createPanel, drawParagraph, fillChamfer, fitText, setFont, wrapLines } from './ui.js';
 import { straightWalkSeconds } from './clock.js';
+import { buildCredits, drawCredits as drawCreditsPage, layoutCredits } from './credits.js';
 
 // Forearm tablet (brief: SYSTEMS / TABLET).
 //
@@ -732,11 +733,14 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
       fitText(ctx, note, 28, y + 54, MIN_PX, room, { minPx: MIN_PX });
     }
     if (pages <= 1) return;
-    button(ctx, `${idPrefix}-prev`, W - 330, y, 96, 80, '<', () => setPage((page + pages - 1) % pages));
+    setFont(ctx, 46, 'bold');
+    const count = `${page + 1} / ${pages}`;
+    const countW = Math.max(122, ctx.measureText(count).width + 28); // wider for two-digit page numbers
+    button(ctx, `${idPrefix}-prev`, W - 208 - countW, y, 96, 80, '<', () => setPage((page + pages - 1) % pages));
     ctx.fillStyle = THEME.text;
     ctx.textAlign = 'center';
     setFont(ctx, 46, 'bold');
-    ctx.fillText(`${page + 1} / ${pages}`, W - 173, y + 56);
+    ctx.fillText(count, W - 112 - countW / 2, y + 56);
     ctx.textAlign = 'left';
     button(ctx, `${idPrefix}-next`, W - 112, y, 96, 80, '>', () => setPage((page + 1) % pages));
   }
@@ -795,11 +799,18 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
     };
   }
 
+  // The full credits (missions covered, every layer with the always-on
+  // backdrop, fact sources, assumptions, software, AI disclosure).
+  const credits = buildCredits(data);
+  const CREDITS_BOX = { x: 28, y: CONTENT_Y, width: W - 56, height: H - 100 - CONTENT_Y, px: MIN_PX };
+
   function drawLayers(ctx) {
     const perPage = 3;
     const list = layers.list;
     const chipPages = Math.ceil(list.length / perPage);
-    const pages = chipPages + 1; // the last page is the credits
+    // After the chips: the CREDITS pages (credits.js).
+    const pages = chipPages + layoutCredits(ctx, credits, CREDITS_BOX).length;
+    state.creditsFirstPage = chipPages;
     state.layersPage = Math.min(state.layersPage, pages - 1);
     const setPage = (page) => {
       state.layersPage = page;
@@ -807,8 +818,8 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
     };
     const missions = data.missionsCovered.join(', ');
     if (state.layersPage >= chipPages) {
-      drawCredits(ctx, missions);
-      drawPager(ctx, 'layers', state.layersPage, pages, setPage, 'Credits');
+      const drawn = drawCreditsPage(ctx, credits, state.layersPage - chipPages, CREDITS_BOX);
+      drawPager(ctx, 'layers', state.layersPage, pages, setPage, `CREDITS · ${drawn.section}`);
       return;
     }
     const rowH = 212;
@@ -891,25 +902,6 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
       if (drawn.clipped) state.clippedText = `layer ${layer.id}`; // for the layout check
     }
     drawPager(ctx, 'layers', state.layersPage, pages, setPage, `Missions: ${missions}`);
-  }
-
-  // Last LAYERS page: the missions covered and the credit of every layer,
-  // the always-on backdrop terrain included. All from the mission file.
-  function drawCredits(ctx, missions) {
-    ctx.fillStyle = THEME.text;
-    fitText(ctx, `Missions covered: ${missions}`, 28, CONTENT_Y + 46, 46, W - 56, { weight: 'bold', minPx: MIN_PX });
-    let y = CONTENT_Y + 104;
-    for (const layer of layers.credits) {
-      ctx.fillStyle = THEME.accent;
-      const always = layers.list.includes(layer) ? '' : ' (always on)';
-      fitText(ctx, `${layer.name}${always}`, 28, y, MIN_PX, W - 56, { weight: 'bold', minPx: MIN_PX });
-      ctx.fillStyle = THEME.dim;
-      setFont(ctx, MIN_PX);
-      const text = layer.source;
-      if (ctx.measureText(text).width > W - 56) state.clippedText = `credit ${layer.id}`; // for the layout check
-      fitText(ctx, text, 28, y + 44, MIN_PX, W - 56, { minPx: MIN_PX });
-      y += 98;
-    }
   }
 
   function drawHelp(ctx) {
@@ -1075,6 +1067,12 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
     setLayersPage(page) {
       state.layersPage = page;
       dirty = true;
+    },
+    // Opens the first CREDITS page of the LAYERS tab (for a "credits" button elsewhere).
+    credits,
+    showCredits() {
+      tablet.setTab('LAYERS');
+      tablet.setLayersPage(Math.ceil(layers.list.length / 3));
     },
 
     // What teleporting to a stop would cost from where the explorer is now:
