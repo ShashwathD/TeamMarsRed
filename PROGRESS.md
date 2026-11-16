@@ -986,3 +986,127 @@ rendering; VR is the iwer emulator. Nothing ran on a real Quest 3S.
 Not covered by the subpath check: files loaded later in a walk (far terrain chunks, the
 panoramas). No address in `index.html` or `src/` starts with `/`, and the server log of the
 check shows no 404.
+
+## Minerals: CRISM layer and mineral-sampling objective (2026-11-15)
+
+Built (five parts, merged into one commit):
+
+- **Data.** `tools/build_minerals.py` reads the Zenodo GeoTIFF (Parente, Saranathan and Itoh
+  2021, CC BY 4.0), snaps every pixel to the nearest key colour and writes
+  `data/walk/jezero_delta/minerals.json`: classes, five groups with colours, the 59 x 55 grid,
+  percentages, ten candidate deposits and the group under each station. The old
+  `data/sites/jezero/crism.bin` and `crism.json` were wrong and are deleted (why: `DECISIONS.md`,
+  "Minerals: data").
+- **Layer.** A "Minerals" chip on the tablet's LAYERS tab (off at the start, eye, "i" line,
+  legend), a translucent overlay on the ground from one 59 x 55 texture (no extra geometry), a
+  credits entry, and the line "Orbit says: <group> (CRISM, approximate)" on the cards.
+- **Cabin.** A wall map on the right-hand wall with the mineral groups over the photo, the
+  stations, ten deposit pins and rows, a legend, the plan summary, CONFIRM and CHANGE; a sample
+  shelf with three slots by the airlock. The door stays shut until three deposits are confirmed.
+- **Route.** The route is re-planned through every station in the stored order plus the three
+  deposits, each placed where it adds the least walking, every leg by the existing A* under 15
+  degrees. The ribbon, tablet MAP, HUD NEXT, walk-home time and cabin hologram follow it.
+- **Sampling.** A marker at each picked deposit, collect by click / trigger or G / grip, a carry
+  slot with labelled containers, a LOG line per sample, shelving in the cabin, the complete
+  state, a debrief card and a next-spot page.
+
+Checked (headless Chromium, software rendering, served from the working copy):
+
+- Desktop end to end, DIRECT at stop 2: 85 of 85 checks, no console errors or warnings. The run
+  is the earlier 59-check playthrough with the mineral steps added: door refused before picks;
+  three picks by mouse (two rows, one pin); a fourth refused; picks changed and changed back;
+  CONFIRM; all four stations as before; the three deposits collected (two by click, one by G);
+  return; containers shelved three ways (container then slot, click on a slot, G); mission
+  complete; debrief card; next-spot page and back. The debrief time and distance equal the
+  test's own sum (13101 s, 4085 m) with 20 min charged once per deposit.
+- The same run with PLANNED at stop 2: 84 of 84.
+- The same run in the emulated headset (iwer, Quest 3 profile), ray and trigger for everything
+  and grip for one collect: 84 of 84.
+- Different picks change the route and the cost: D3 D4 D6 gives 4239 m and 219.6 min of EVA
+  (order START S2 D4 D3 S3 S4 S5 D6 START); D2 D3 D8 gives 5228 m and 239.5 min (order START S2
+  D3 S3 S4 D8 S5 D2 START). Both keep the reserve. Steepest ground on them: 14.7 and 14.9 degrees.
+- `?skipcabin=1`: starts outside on the stored 1416-point route, no picks, no markers, NEXT is
+  S2, no console errors.
+- The Minerals chip's eye switches the overlay on the ground; the "i" shows the info line.
+- Looked at: the wall map, the door sign, a deposit marker with the carry slot, the full shelf,
+  the debrief card, the next-spot page, the hologram, the tablet chip, the high view.
+
+Results against the brief's expected results (not tuned):
+
+| | Expected | Built |
+|---|---|---|
+| Pixels | 3,304 | 3,245 (59 x 55) |
+| Olivine + clay | about 62% | 63.11% (Olivine + smectite alone 61.66%) |
+| Unclassified | about 20% | 19.60% |
+| Carbonate | about 6% | 5.86% |
+| Kaolinite | about 5% | 5.08% |
+| Fe/Mg-smectite | about 4% | 4.07% |
+| The rest | about 4% or less | 2.28% (Low-Ca pyroxene 2.00, High-Ca pyroxene 0.15, Olivine 0.09, Mg-smectite 2 0.03) |
+| Stations | all five on Olivine + smectite | START, S3, S4, S5 yes; S2 on Unclassified |
+| Carbonate patch | about 3.5 ha near 77.3887 E 18.4708 N | 3.50 ha, 27 pixels, centre 77.38871 E 18.47082 N: in the data, but not one of the ten candidates |
+
+Candidate deposits: D1 Olivine + clay 248.31 ha; D2 Clay 16.59; D3 Carbonate 8.29; D4 Carbonate
+1.68; D5 Carbonate 1.04; D6 Clay 1.04; D7 Olivine + clay 0.91; D8 Olivine + clay 0.91; D9
+Carbonate 0.78; D10 Volcanic 0.39.
+
+Mismatches:
+
+1. 3,245 pixels, not 3,304: the tool counts pixel centres inside the patch (55 rows); rounding
+   the window start and length separately gives 56 rows. The percentages agree either way.
+2. S2 is on Unclassified, so the stations do not all return one group. Its pixel is a dark blend
+   that is nearer black than the Olivine + smectite colour.
+3. The 3.5 ha carbonate patch is 77 m from D1's marker, under the tool's 80 m spacing rule, so
+   it is not offered as a candidate.
+4. Areas use 36 m x 36 m per pixel as the brief says; on the ground a pixel is about 34 m wide
+   east-west at this latitude, so areas read about 5% high.
+5. D1 is one connected patch covering most of the area; D1 and D2 touch the patch edge.
+
+Overlay alignment:
+
+- The overlay is drawn where the georeferencing puts it. In a top-down render at 2 m per pixel,
+  every drawn overlay pixel is one the georeferencing says is classified (100.00%; 99.79% the
+  other way), and the carbonate patch near 77.3887 E 18.4708 N is drawn within 2 m of where its
+  cells should be.
+- Against the photo itself the check is weak. At the dune field in the north-west, the strong
+  Olivine + clay block ends at the dune field's east and south edges to within about one 36 m
+  pixel by eye. A shift search (how well the classes predict photo brightness and texture) for
+  the dune field and for the clay area in the east gave broad best values within 36 m of zero
+  shift, in different directions for the two areas. So no shift bigger than about one CRISM
+  pixel shows, and a shift smaller than that cannot be ruled out. Nothing was nudged.
+
+SOURCE NEEDED lines: none.
+
+Not verified:
+
+- Anything on a real Quest 3S: frame rate with the overlay on, wall-map legibility (smallest
+  text 22 px), the pause while a route is searched, comfort.
+- VR only as far as the emulator: ray and trigger on the wall map, markers and shelf, grip to
+  collect, and (independent check, below) grip-grab of a container released at a shelf slot.
+- Walking between stops with W/A/S/D (the runs use teleports, tablet jumps and direct moves).
+- GO on the next-spot page (it reloads the page with `?site=<id>`): the rows were checked, the
+  reload was not.
+- The earlier B2 to B8 reviewer tests were not rerun. Any that open the airlock straight after
+  arrival will now need three picks first.
+- The browser test log shows the three HEAD requests of the next-spot check as "failed"
+  requests although they answer 200 and the rows are right; not looked into further.
+- The tablet MAP does not draw the minerals (the wall map and the ground overlay do).
+
+Independent check (after the integration, same day):
+
+- Recomputed from the cached GeoTIFF with a separate script: 59 x 55 = 3,245 pixel centres in
+  the patch, every class and group percentage equal to `minerals.json`, all 3,245 grid cells
+  equal, the same group under START, S2 (Unclassified), S3, S4, S5 and under every deposit
+  marker, and a 27-pixel (3.50 ha) carbonate patch at 77.3887 E 18.4708 N.
+- Desktop playthrough with other picks (D5, D10, D2; preview D1, D5, D7): 83 checks pass, no
+  console errors. Order walked START S2 S3 S4 S5 D2 D5 D10 START, planned 4,325 m and
+  222.0 min (82.0 walking + 4 x 20 + 3 x 20). Debrief: 4 of 4 stations, Clay / Carbonate /
+  Volcanic shelved, EVA 13,529 s against 13,529 s summed by the test, shown as 3 h 45 min.
+- Emulated VR (`?skipcabin=1`, iwer): door refused without picks, three picks by controller
+  ray and trigger (two rows, one pin), a fourth refused, CONFIRM, door sign, one deposit
+  collected by trigger on its marker (20 min charged once), container grabbed with the grip
+  and released at shelf slot 2. 14 checks pass.
+- Triangles / draw calls with view culling off, before this part and after: cabin 3,886 / 16
+  and 4,034 / 19; outside at the start 235,508 / 309 before, after, and with the Minerals
+  layer on (one more texture, no geometry). Not measured with the three deposit markers out.
+- Fixed: the mineral debrief hint no longer starts with "No fail state:"; CREDITS.md keeps
+  its sentence "The other three:" unchanged, with the minerals entry after that list.

@@ -22,6 +22,12 @@ export const FIXED = {
     backdrop: 'Credit: NASA/JPL-Caltech/MSSS/USGS',
   },
   alwaysOn: ['backdrop'],
+  // Layers whose whole credit is one fixed line (as CREDITS.md gives it), shown
+  // as "<layer name>: <line>". The layer's creditNotes (from its data file) follow.
+  layerLine: {
+    minerals:
+      'Parente, Saranathan and Itoh 2021, Zenodo doi:10.5281/zenodo.5575824, CC BY 4.0. From MRO CRISM data (NASA/JPL-Caltech/JHUAPL). Class names are closest spectral matches.',
+  },
   software: [
     { head: 'Three.js 0.170.0', text: 'The 3D library. MIT License, copyright 2010-2024 three.js authors.' },
     { head: 'Mission code', text: 'Written for this project. The cabin, tablet, HUD, beacons, sample tubes and every other object are built in code; no 3D model, texture, font or sound file from anyone else is loaded.' },
@@ -56,6 +62,9 @@ export function buildCredits(data) {
     id: 'layers',
     title: 'Mars data',
     lines: data.layers.map((layer) => {
+      if (FIXED.layerLine[layer.id]) {
+        return { head: layer.name, text: [FIXED.layerLine[layer.id], ...(layer.creditNotes || []).map(sentence)].join(' ') };
+      }
       const parts = [`${layer.mission}, ${layer.instrument}`, `Source: ${layer.source}`];
       if (layer.retrieved) parts[1] += ` (retrieved ${layer.retrieved})`;
       if (layer.note) parts.push(layer.note);
@@ -103,6 +112,14 @@ const HEAD_GAP = 0.3; // of a line height, above a credit
 const SECTION_GAP = 0.45; // of a line height, above a section title
 
 const layoutCache = new WeakMap();
+
+// After a layer was added while the app runs (the minerals): build the
+// sections again in place, so whoever holds `credits` sees the new entry.
+export function refreshCredits(credits, data) {
+  credits.sections = buildCredits(data).sections;
+  layoutCache.delete(credits);
+  return credits;
+}
 
 export function layoutCredits(ctx, credits, { width, height, px = 42, lineHeight = Math.round(px * 1.1) }) {
   const key = `${width}x${height}@${px}/${lineHeight}`;

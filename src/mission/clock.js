@@ -74,18 +74,28 @@ export function createClock({ rg, pace, assumptions, routePoints, airlock }) {
   // Walking seconds along the route: forward[i] from point 0 to point i,
   // backward[i] from point i back to point 0 (not the same: uphill and
   // downhill are priced differently).
-  const count = routePoints.length;
-  const forward = new Float64Array(count);
-  const backward = new Float64Array(count);
-  for (let i = 0; i + 1 < count; i++) {
-    const [ax, az] = routePoints[i];
-    const [bx, bz] = routePoints[i + 1];
-    const d = Math.hypot(bx - ax, bz - az);
-    const rise = sampleGrid(rg, rg.grid.heights, bx, bz) - sampleGrid(rg, rg.grid.heights, ax, az);
-    forward[i + 1] = forward[i] + walkSeconds(d, rise, pace);
-    backward[i + 1] = backward[i] + walkSeconds(d, -rise, pace);
+  // MINERALS W3 HOOK: these four are worked out by measureRoute, so that
+  // clock.setRoute (below) can swap the route the walk-home time follows.
+  let count = 0;
+  let forward = null;
+  let backward = null;
+  let loopS = 0;
+  function measureRoute(points) {
+    routePoints = points;
+    count = points.length;
+    forward = new Float64Array(count);
+    backward = new Float64Array(count);
+    for (let i = 0; i + 1 < count; i++) {
+      const [ax, az] = points[i];
+      const [bx, bz] = points[i + 1];
+      const d = Math.hypot(bx - ax, bz - az);
+      const rise = sampleGrid(rg, rg.grid.heights, bx, bz) - sampleGrid(rg, rg.grid.heights, ax, az);
+      forward[i + 1] = forward[i] + walkSeconds(d, rise, pace);
+      backward[i + 1] = backward[i] + walkSeconds(d, -rise, pace);
+    }
+    loopS = forward[count - 1];
   }
-  const loopS = forward[count - 1];
+  measureRoute(routePoints);
 
   const airlockSnap = nearestInMask(rg, rg.walkable, airlock.x, airlock.z, SNAP_M);
   let reachable = null; // cells that can be walked to from the airlock; made on first use
@@ -169,6 +179,15 @@ export function createClock({ rg, pace, assumptions, routePoints, airlock }) {
       updateHome(x, z, false);
       refresh();
       return seconds;
+    },
+
+    // MINERALS W3 HOOK: follow another route (a closed loop from and to the
+    // airlock, [[x, z], ...]). Time already charged is kept; the walk-home
+    // time is worked out again from where the explorer is.
+    setRoute(points) {
+      measureRoute(points);
+      if (located) updateHome(lastX, lastZ, true);
+      refresh();
     },
 
     // Walking seconds along the stored route between two of its points,

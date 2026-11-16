@@ -51,6 +51,7 @@ The tablet names each layer as in this table (text from `data/mission/jezero_del
 | Sample sites | Mars 2020 Perseverance, Sampling and caching system | NASA Mars Rock Samples (retrieved 2026-09-29) | Positions approximate (rover waypoint at that sol) |
 | Surface panoramas | Mars 2020 Perseverance, Navcam | Mars 2020 Navcam | |
 | Backdrop terrain (always on) | Mars Reconnaissance Orbiter (MRO), CTX | MRO CTX, 20 m | |
+| Minerals (off at the start) | Mars Reconnaissance Orbiter (MRO), CRISM | Parente et al. 2021, CC BY 4.0 | |
 
 The photo, the terrain and the backdrop are the three USGS products described under "Mars data"
 above. The other three:
@@ -71,6 +72,13 @@ above. The other three:
   `data/pano/m20/index.json`). Credit: NASA/JPL-Caltech, Mars 2020 Navcam raw images, stitched with
   the project's pipeline (docs/data-sources.md). The panoramas cover about half of the full
   sphere; the rest is filled in by the stitcher and is not a photograph.
+- **Minerals, `data/walk/jezero_delta/minerals.json`** (made by `tools/build_minerals.py`; the
+  layer is added by `src/mission/minerals.js`, not by the mission file). Minerals: Parente, Saranathan and Itoh 2021, Zenodo doi:10.5281/zenodo.5575824, CC BY 4.0. From MRO CRISM data (NASA/JPL-Caltech/JHUAPL). Class names are closest spectral matches.
+  The app's credits show that line (typed in `src/mission/credits.js`), followed by the two
+  caveats stored in the data file: the class names are closest matches to known spectra and
+  exact mineral attributions can only be verified after further analysis; CRISM sees only the
+  top few micrometres of the surface, and dust hides what is under it. The pixels are 36 m. The
+  layer shows which minerals are probably there; it is not a hazard map.
 
 ## Fact sources (F1 to F9)
 

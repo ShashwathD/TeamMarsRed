@@ -8,7 +8,7 @@ import { createPlayer, EYE_HEIGHT_M } from './controls.js';
 import { createNorthMarker } from './northMarker.js';
 import { createFrameMeter } from './frameMeter.js';
 import { createXR } from './xr.js';
-import { MISSION_SITES, createMission } from './mission/mission.js';
+import { MISSION_SITES, createMission, installMineralObjective } from './mission/mission.js';
 import { createCabin } from './mission/cabin.js';
 
 const DEFAULT_SITE = 'jezero_delta';
@@ -155,6 +155,9 @@ async function start() {
       // A cabin that fails to build leaves the walk itself usable.
       try {
         const cabin = createCabin({ mission, scene, camera, renderer, player, xr, patch, terrain, surround });
+        // Minerals: wall map, deposit picks, route, sampling. Loaded before the cabin
+        // draws its briefing so the "Orbit says" line is on the first card.
+        await installMineralObjective(mission, { scene, camera, renderer, player, xr, patch, terrain, photo, cabin });
         if (params.get('skipcabin') === '1') cabin.startOutside();
         else {
           cabin.enter('briefing');

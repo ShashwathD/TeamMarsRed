@@ -9,6 +9,11 @@ import { createLayers } from './layers.js';
 import { attachDesktopPointer, createUi } from './ui.js';
 import { createTablet } from './tablet.js';
 import { createStations } from './stations/index.js';
+import { ensureMineralState } from './mineralState.js';
+import { installMinerals } from './minerals.js';
+import { installMineralRoute } from './mineralRoute.js';
+import { installCabinMinerals } from './cabinMinerals.js';
+import { installSampling } from './sampling.js';
 
 // The Jezero Marswalk mission: single entry point, loaded from main.js.
 // Later build steps (clock, tablet, stations, cabin) extend this module.
@@ -269,6 +274,33 @@ export async function createMission({ site, patch, scene, renderer, camera, play
       return progress.nextId;
     },
 
+    // MINERALS W3 HOOK (start): swaps the walked route for `points` (a closed
+    // loop from and to the airlock, [[x, z], ...]). The ribbon is rebuilt once;
+    // the clock's walk-home time, the tablet MAP and the spawn spot follow it.
+    // stopIndex = { stationId: index into points }. Stations are not touched.
+    nextOverride: null, // { id, x, z }: the HUD's NEXT points here instead of at the next station
+    setRoute(points, { stopIndex = null } = {}) {
+      const geometry = buildRibbonGeometry(patch, [points], {
+        widthM: ROUTE_WIDTH_M,
+        shiftRightM: [laneShifts(points, ROUTE_LANE_SHIFT_M)],
+        stackM: ROUTE_STACK_M,
+      });
+      route.geometry.dispose();
+      route.geometry = geometry;
+      mission.route.points = points;
+      mission.route.lengthM = geometry.userData.lengthM;
+      clock.setRoute(points);
+      let index = 0;
+      while (index + 1 < points.length && Math.hypot(points[index][0] - data.start.x, points[index][1] - data.start.z) < SPAWN_FROM_MARKER_M) index++;
+      const ahead = points[Math.min(index + 10, points.length - 1)];
+      spawn.x = points[index][0];
+      spawn.z = points[index][1];
+      spawn.routeIndex = index;
+      spawn.headingDeg = THREE.MathUtils.radToDeg(Math.atan2(ahead[0] - spawn.x, -(ahead[1] - spawn.z)));
+      if (tablet && tablet.setRoute) tablet.setRoute(points, stopIndex);
+    },
+    // MINERALS W3 HOOK (end)
+
     // Card text with its {placeholders} filled in. S5B has two columns.
     cardText(id) {
       const card = data.cards[id];
@@ -344,8 +376,10 @@ export async function createMission({ site, patch, scene, renderer, camera, play
       telemetry.slopeLevel = LEVELS[band];
 
       // Straight-line distance to the next station.
-      const nextId = progress.nextId;
-      const target = nextId === 'START' ? data.start : nextId ? stations.get(nextId) : null;
+      // MINERALS W3 HOOK: a deposit that comes before the next station is the target.
+      const override = mission.nextOverride;
+      const nextId = override ? override.id : progress.nextId;
+      const target = override || (nextId === 'START' ? data.start : nextId ? stations.get(nextId) : null);
       telemetry.nextId = nextId;
       telemetry.nextDistanceM = target ? Math.hypot(target.x - viewer.x, target.z - viewer.z) : NaN;
 
@@ -440,4 +474,49 @@ export async function createMission({ site, patch, scene, renderer, camera, play
   }
 
   return mission;
+}
+
+// The mineral-sampling objective: the CRISM layer, the cabin wall map and shelf,
+// the route through the picked deposits, and collecting / shelving / debrief.
+// Called from main.js after createCabin (the wall map and the shelf live in the
+// cabin). Each part is installed on its own, so one that fails leaves the rest
+// and the station walk usable. Without minerals.json nothing is added.
+export async function installMineralObjective(mission, deps) {
+  const state = ensureMineralState(mission);
+  const full = { THREE, ui: mission.ui, stations: mission.stationSet, ...deps };
+  const out = { state, minerals: null, route: null, cabinMinerals: null, sampling: null };
+  try {
+    out.minerals = await installMinerals(mission, full);
+  } catch (error) {
+    console.error(error);
+  }
+  if (!state.data) return out;
+  try {
+    out.route = installMineralRoute(mission, full);
+  } catch (error) {
+    console.error(error);
+  }
+  if (full.cabin) {
+    try {
+      out.cabinMinerals = installCabinMinerals(mission, full);
+    } catch (error) {
+      console.error(error);
+    }
+    try {
+      out.sampling = installSampling(mission, { ...full, cabinMinerals: out.cabinMinerals });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+  // The cabin hologram's blue dots follow the route when it is re-planned.
+  if (full.cabin && typeof full.cabin.setHologramRoute === 'function' && typeof mission.setRoute === 'function') {
+    const setRoute = mission.setRoute.bind(mission);
+    mission.setRoute = (points, options) => {
+      const result = setRoute(points, options);
+      full.cabin.setHologramRoute(points);
+      return result;
+    };
+  }
+  mission.mineralObjective = out;
+  return out;
 }

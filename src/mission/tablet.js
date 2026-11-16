@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PALETTE, css, lowPolyMaterial, mergeParts } from './lowpoly.js';
 import { THEME, createPanel, drawParagraph, fillChamfer, fitText, setFont, wrapLines } from './ui.js';
 import { straightWalkSeconds } from './clock.js';
-import { buildCredits, drawCredits as drawCreditsPage, layoutCredits } from './credits.js';
+import { buildCredits, drawCredits as drawCreditsPage, layoutCredits, refreshCredits } from './credits.js';
 
 // Forearm tablet (brief: SYSTEMS / TABLET).
 //
@@ -213,8 +213,9 @@ const clockText = (seconds) => {
 export function createTablet({ mission, ui, scene, camera, renderer, player, xr, patch, photo }) {
   const { data, clock, routeGrid, pace } = mission;
   const layers = mission.layerSet;
-  const points = data.route.points;
-  const last = points.length - 1;
+  // MINERALS W3 HOOK: `let`, so tablet.setRoute (below) can swap the route the MAP shows.
+  let points = data.route.points;
+  let last = points.length - 1;
   const anisotropy = renderer ? Math.min(8, renderer.capabilities.getMaxAnisotropy()) : 1;
 
   // ---- objects ------------------------------------------------------------------
@@ -235,9 +236,10 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
   panel.mesh.add(marker);
 
   // ---- stops that can be teleported to -----------------------------------------
-  const cumulativeM = new Float64Array(points.length);
+  // MINERALS W3 HOOK: `let` (see tablet.setRoute).
+  let cumulativeM = new Float64Array(points.length);
   for (let i = 1; i < points.length; i++) cumulativeM[i] = cumulativeM[i - 1] + Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]);
-  const loopM = cumulativeM[last];
+  let loopM = cumulativeM[last];
 
   const mapX = (x) => MAP_X + (x / patch.sizeX + 0.5) * MAP_S;
   const mapY = (z) => MAP_Y + (z / patch.sizeZ + 0.5) * MAP_S;
@@ -887,7 +889,7 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
         // The one-line explanation, in place of the credits.
         ctx.fillStyle = THEME.text;
         setFont(ctx, MIN_PX);
-        const text = LAYER_INFO[layer.id] ? LAYER_INFO[layer.id](infoValues()) : layer.note || layer.source;
+        const text = LAYER_INFO[layer.id] ? LAYER_INFO[layer.id](infoValues()) : layer.info || layer.note || layer.source; // MINERALS HOOK (w5): layer.info
         const drawn = drawParagraph(ctx, text, 40, y + 136, W - 80, 48, 2);
         if (drawn.clipped) state.clippedText = `layer info ${layer.id}`;
         continue;
@@ -897,6 +899,22 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
       fitText(ctx, `${layer.mission} · ${layer.instrument}`, 40, y + 112, MIN_PX, W - 80, { minPx: MIN_PX });
       ctx.fillStyle = THEME.dim;
       setFont(ctx, MIN_PX);
+      if (layer.legend && layer.legend.length) {
+        // MINERALS HOOK (w5): a layer with its own legend ([[colour, name], ...]):
+        // the source on one line, the legend (flat swatches + names) on the last.
+        fitText(ctx, `Source: ${layer.source}`, 40, y + 155, MIN_PX, W - 80, { minPx: MIN_PX });
+        setFont(ctx, MIN_PX);
+        let lx = 40;
+        for (const [colour, text] of layer.legend) {
+          ctx.fillStyle = colour;
+          ctx.fillRect(lx, y + 167, 32, 32);
+          ctx.fillStyle = THEME.text;
+          ctx.fillText(text, lx + 42, y + 198);
+          lx += 42 + ctx.measureText(text).width + 26;
+        }
+        if (lx - 26 > W - 40) state.clippedText = `layer legend ${layer.id}`; // for the layout check
+        continue;
+      }
       const source = `Source: ${layer.source}${layer.note ? `. ${layer.note}` : ''}`;
       const lines = wrapLines(ctx, source, W - 80);
       const drawn = drawParagraph(ctx, source, 40, lines.length > 1 ? y + 155 : y + 166, W - 80, 42, 2);
@@ -1077,6 +1095,42 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
     redraw() {
       dirty = true;
     },
+    // MINERALS W3 HOOK (start): the MAP and its teleports follow another route
+    // (a closed loop from and to the airlock). stopIndex = { stopId: index into
+    // newPoints }; a stop without one keeps the route point nearest to it.
+    setRoute(newPoints, stopIndex = null) {
+      points = newPoints;
+      last = points.length - 1;
+      cumulativeM = new Float64Array(points.length);
+      for (let i = 1; i < points.length; i++) cumulativeM[i] = cumulativeM[i - 1] + Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]);
+      loopM = cumulativeM[last];
+      for (const target of targets) {
+        let index = stopIndex ? stopIndex[target.id] : undefined;
+        if (!Number.isInteger(index)) {
+          index = 0;
+          for (let i = 1; i <= last; i++) {
+            if (Math.hypot(points[i][0] - target.x, points[i][1] - target.z) < Math.hypot(points[index][0] - target.x, points[index][1] - target.z)) index = i;
+          }
+        }
+        // The landing point, by the same rule as makeTarget.
+        const far = (i) => Math.hypot(points[i][0] - target.x, points[i][1] - target.z) >= APPROACH_M;
+        let land = index;
+        while (land > 0 && !far(land)) land--;
+        if (!far(land)) {
+          land = index;
+          while (land < last && !far(land)) land++;
+        }
+        target.routeIndex = index;
+        target.landIndex = land;
+        target.landX = points[land][0];
+        target.landZ = points[land][1];
+        target.headingDeg = (THREE.MathUtils.radToDeg(Math.atan2(target.x - target.landX, -(target.z - target.landZ))) + 360) % 360;
+      }
+      state.dialog = null; // a jump being confirmed was priced on the old route
+      baseKey = ''; // the map picture is made again
+      dirty = true;
+    },
+    // MINERALS W3 HOOK (end)
     setHelpDevice(device) {
       if (!HELP[device] || device === state.helpDevice) return;
       state.helpDevice = device;
@@ -1249,6 +1303,11 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
   };
 
   layers.onChange = () => {
+    dirty = true;
+  };
+  // MINERALS HOOK (w5): a layer added after the tablet was built gets its chip and its credits entry.
+  layers.onRegister = () => {
+    refreshCredits(credits, data);
     dirty = true;
   };
   mission.log.onChange = () => {

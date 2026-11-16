@@ -4,6 +4,7 @@ import { THEME, createPanel, fillChamfer, fitText, setFont, wrapLines } from '..
 import { fillPlaceholders } from '../mission.js';
 import { markBeaconDone } from '../beacons.js';
 import { createSampleTube } from './tube.js';
+import { orbitLine, withOrbitLine } from '../minerals.js'; // MINERALS HOOK (w5)
 
 // STATION FRAMEWORK (brief: build step B5).
 //
@@ -87,7 +88,10 @@ const BODY_PX = [44, 42, 40, 38, 36, 34];
 // The S1 briefing card as data: { id, title, body, source }. The cabin shows it on its hologram.
 export function briefingCard(mission) {
   const card = mission.data.cards.S1;
-  return { id: 'S1', title: card.title, body: fillPlaceholders(card.text, mission.values), source: card.source };
+  // MINERALS HOOK (w5): "Orbit says: <group> (CRISM, approximate)", once, when every station agrees.
+  const orbit = orbitLine(mission, 'S1');
+  const body = fillPlaceholders(card.text, mission.values);
+  return { id: 'S1', title: card.title, body: orbit ? `${body}\n${orbit}` : body, source: card.source };
 }
 
 // Cards for a station straight from the mission file (used by placeholders; real stations may use it too).
@@ -493,7 +497,7 @@ export async function createStations({ mission, scene, camera, renderer, player 
     shown.key = entry.id;
     shown.badge = badgeOf(entry.id);
     shown.title = station.title || entry.data.title;
-    shown.cards = safely(entry, 'cards', () => station.cards()) || [];
+    shown.cards = withOrbitLine(mission, entry.id, safely(entry, 'cards', () => station.cards()) || []); // MINERALS HOOK (w5)
     if (shown.page >= shown.cards.length) shown.page = 0;
     shown.prompt = (station.prompt && safely(entry, 'prompt', () => station.prompt())) || '';
     // A station without prompt() may give its control hint as `action` on the card (S3, S4).
@@ -561,6 +565,15 @@ export async function createStations({ mission, scene, camera, renderer, player 
   }
   // Gives the press to the active station. True if it used it.
   function route(kind) {
+    // MINERALS W4 HOOK (sampling.js): targets of the same rank as a station (deposit markers,
+    // the cabin shelf). Each gets the press before the active station; true = used.
+    for (let i = 0; i < set.inputFirst.length; i++) {
+      try {
+        if (set.inputFirst[i](kind, info)) return true;
+      } catch (error) {
+        console.error('Station input hook:', error);
+      }
+    }
     if (!active) return false;
     const station = active.station;
     if (!station.onInput) return false;
@@ -648,6 +661,7 @@ export async function createStations({ mission, scene, camera, renderer, player 
     enters: 0,
     handled: 0,
     onDone: null, // (id) => {} after a station is completed
+    inputFirst: [], // MINERALS W4 HOOK: (kind, info) => true if used; see route()
     radiusM: DEFAULT_RADIUS_M,
 
     get active() {

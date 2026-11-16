@@ -77,7 +77,7 @@ Screenshots of the delta and where they were taken: `docs/screenshots/`.
 - `src/data.js` - loads `walk.json` + `dem.bin`, height sampling, lon/lat <-> local metres
 - `src/terrain.js` - walk-patch terrain with level of detail (chunks, fine near the viewer)
 - `src/surround.js` - distant terrain from the coarse grid in `data/sites/`, joined to the patch
-- `src/materials.js` - ground materials: photo, Mars tint, highlight roll-off; switches for the photo and the slope-hazard overlay
+- `src/materials.js` - ground materials: photo, Mars tint, highlight roll-off; switches for the photo, the slope-hazard overlay and the mineral overlay
 - `tools/stitch_mosaic.py` - stitches the photo tiles of a patch into `mosaic_16.jpg`
 - `src/sky.js` - sky gradient, dust haze, lights
 - `src/controls.js` - player rig, keyboard + mouse walking
@@ -94,7 +94,9 @@ Screenshots of the delta and where they were taken: `docs/screenshots/`.
 - `src/mission/ui.js` - UI kit: canvas panels with tappable regions, ray picking for controllers and the mouse
 - `src/mission/tablet.js` - forearm tablet: MAP (with teleport to a stop), LOG, LAYERS, HELP
 - `src/mission/credits.js` - the credits as data (from the mission file, plus fixed lines that repeat `CREDITS.md`) and as paged canvas text; used by the tablet's LAYERS tab, and `createCreditsPanel` gives a stand-alone panel
-- `src/mission/layers.js` - data layers the tablet switches: photo, slope hazard, rover path and stops, sample sites, panoramas (the backdrop is always on)
+- `src/mission/layers.js` - data layers the tablet switches: photo, slope hazard, rover path and stops, sample sites, panoramas (the backdrop is always on); `register()` lets a module add a layer (the minerals)
+- `src/mission/minerals.js` - the Minerals layer: loads `data/walk/<site>/minerals.json`, one small texture (one texel per 36 m CRISM pixel) drawn over the walk ground as a translucent overlay, the LAYERS chip with its legend, and the "Orbit says" line for the briefing and station cards
+- `src/mission/mineralState.js` - shared state of the mineral-sampling objective (`mission.minerals`)
 - `src/mission/stations/index.js` - station framework: the list of stations, which one is active (by distance), the station card, who gets a press (tablet and panels, then the station, then teleport), the right-hand hold, completion
 - `src/mission/stations/tube.js` - the one shared low-poly sample tube
 - `src/mission/stations/s2.js` - stop 2, Read the ground: slope layer, DIRECT and PLANNED signs
@@ -115,10 +117,12 @@ it is worn on the left forearm and lights with `Y` on the left controller or by 
 it, and the right controller's ray and trigger tap its buttons. MAP shows the whole route on the
 photo, where you are, and a pin per stop: tap a pin, confirm, and you are taken there for the
 walking time of the route distance. LAYERS has one chip per layer (photo, slope hazard in amber
-10 to 15 degrees and red above 15, rover path, sample sites, panoramas): the eye switches it, the
+10 to 15 degrees and red above 15, rover path, sample sites, panoramas, minerals): the eye switches it, the
 "i" gives a one-line explanation, and the pages after the chips are the CREDITS: missions
 covered, every data layer (the always-on distant terrain too), the fact sources, what is assumed
-or simulated, and the software. The rover path is on the map from the start
+or simulated, and the software. The Minerals chip (off at the start) draws the best-match mineral
+groups from orbit over the ground in 36 m pixels, with its legend on the chip: Minerals: Parente, Saranathan and Itoh 2021, Zenodo doi:10.5281/zenodo.5575824, CC BY 4.0. From MRO CRISM data (NASA/JPL-Caltech/JHUAPL). Class names are closest spectral matches. It
+shows which minerals are probably there and says nothing about danger. The rover path is on the map from the start
 but appears on the ground only when stop 3 turns it on. HELP lists the controls, including `E`, `B` and `G` (scan, airlock door, take or stow a sample
 tube). After the four cores at stop 5 are logged the tablet also shows the Field Check. Add `tablet=0` to the address to leave the tablet out
 (the controller buttons then all toggle the frame time, as in the plain viewer; the Field Check
@@ -147,5 +151,7 @@ Since B4: `setLayer` also takes `'photo' | 'slope' | 'samples' | 'panoramas' | '
 station })`, `entries`), `travelTo(x, z, headingDeg)`, `actions` (`scan`, `door`), `ui` (the panel manager) and `tablet` (`setOpen`, `toggle`, `setTab`, `askJump(id)`,
 `confirmJump()`, `cancelJump()`, `cost(id)`, `targets`, `state`, `panel`, `stats()`,
 `credits`, `showCredits()`).
+Minerals: `setLayer('minerals', on)`, `layerSet.register(layer, { on, can, apply })`, `mission.minerals`
+(`data`, `picks`, `plan`, ...; see `src/mission/mineralState.js`).
 
 Design choices and the measurements behind them are in `DECISIONS.md`.

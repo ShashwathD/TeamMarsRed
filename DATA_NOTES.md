@@ -12,7 +12,7 @@ the files in this repo with a throwaway Python script (numpy + Pillow); nothing 
 | `layers/` | 200 KB | `traverses.geojson`: the Perseverance and Curiosity drive paths. `landing_sites.geojson`: 16 landing/crash points, all missions. |
 | `stops/` | 204 KB | Rover waypoints with sol, lon/lat, elevation and heading: `m20.json` (703, Perseverance), `msl.json` (1384, Curiosity). |
 | `pano/m20/` | 3.9 MB | 4 stitched Perseverance Navcam panoramas (JPEG) plus an index and per-panorama frame lists. |
-| `sites/` | 7.2 MB | Coarse regional terrain for jezero (20 m), gale (32 m) and ius_chasma (about 5 m): `grid.bin` + `grid.json`, a `slope_hazard.png`, and for some sites `thermal.bin` (THEMIS) and `crism.bin` (minerals, jezero only). |
+| `sites/` | 7.2 MB | Coarse regional terrain for jezero (20 m), gale (32 m) and ius_chasma (about 5 m): `grid.bin` + `grid.json`, a `slope_hazard.png`, and for some sites `thermal.bin` (THEMIS) and, until 2026-11-15, `crism.bin` (jezero only; deleted as wrong, see "Minerals: data" in `DECISIONS.md`; the minerals are now in `walk/jezero_delta/minerals.json`). |
 | `walk/` | 53 MB | Fine 2 m "walk" patches for jezero and gale: `dem.bin` + `walk.json` + photo tiles. There is no `jezero_delta` yet (that is step 2). |
 
 ## Walk patch format (data/walk/<site>/)

@@ -341,6 +341,14 @@ Limits found: the Esri HiRISE layer is an equatorial mosaic with no tiles past a
 
 ## CRISM Jezero Mineralogy (`marsmap crism`)
 
+> **Superseded on 2026-11-15.** The `crism.json` and `crism.bin` files this section describes were
+> wrong (the script read only the red band of an RGB picture and the "hazard weights" were made
+> up) and have been deleted. The mineral map says which minerals are probably at the surface; it
+> is not a hazard map. The app now uses `data/walk/jezero_delta/minerals.json`, built by
+> `tools/build_minerals.py` from the same Zenodo file (Parente, Saranathan and Itoh 2021,
+> doi:10.5281/zenodo.5575824, CC BY 4.0). See "Minerals: data" in `DECISIONS.md`. The table below
+> is kept only as a record of the old pipeline step.
+
 | Item | Detail |
 |---|---|
 | Dataset | `jezeroFinal.tif` — CRISM-based mineral unit map of Jezero crater |
