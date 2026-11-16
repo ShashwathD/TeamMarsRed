@@ -107,15 +107,28 @@ export function createFieldCheck({ mission }) {
     });
     if (picked === null) return;
     const correct = picked === q.answer;
-    ctx.fillStyle = correct ? THEME.accent : THEME.amber;
-    fitText(ctx, correct ? 'Correct.' : `Not quite. The answer: ${q.rightAnswer}.`, 32, 668, 46, kit.W - 64, { weight: 'bold', minPx: kit.MIN_PX });
+    let y = 668;
+    if (correct) {
+      ctx.fillStyle = THEME.accent;
+      fitText(ctx, 'Correct.', 32, y, 46, kit.W - 64, { weight: 'bold', minPx: kit.MIN_PX });
+    } else {
+      // Two lines, so that the longest right answer is shown whole.
+      ctx.fillStyle = THEME.amber;
+      setFont(ctx, kit.MIN_PX);
+      ctx.fillText('Not quite. The right answer:', 32, 656);
+      y = 708;
+      const answer = `${q.rightAnswer}.`;
+      setFont(ctx, kit.MIN_PX, 'bold');
+      if (ctx.measureText(answer).width > kit.W - 64) state.clippedText = `answer ${q.id}`;
+      fitText(ctx, answer, 32, y, 46, kit.W - 64, { weight: 'bold', minPx: kit.MIN_PX });
+    }
     // The source of the right answer, from the mission file.
     ctx.fillStyle = THEME.dim;
     setFont(ctx, kit.MIN_PX);
     // Wrapped narrow enough to stop short of the NEXT button.
     const lines = wrapLines(ctx, q.source, kit.W - 64 - 340);
     if (lines.length > 3) state.clippedText = `source ${q.id}`;
-    for (let i = 0; i < Math.min(lines.length, 3); i++) ctx.fillText(lines[i], 32, 728 + i * 50);
+    for (let i = 0; i < Math.min(lines.length, 3); i++) ctx.fillText(lines[i], 32, y + 56 + i * 50);
     const lastOne = state.index === total - 1;
     kit.button(ctx, 'fc-next', kit.W - 332, 760, 300, 112, lastOne ? 'FINISH' : 'NEXT', () => fieldCheck.next(), { on: true, px: 52 });
   }

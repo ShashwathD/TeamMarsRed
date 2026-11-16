@@ -152,6 +152,16 @@ export function createStation(ctx) {
     }
   }
   pad.y = patch.groundY(pad.x, pad.z);
+  // The pad lies in the plane of the ground under it (from the heights at its
+  // rim), so its uphill side is not buried and its downhill side does not float.
+  const rimXp = patch.groundY(pad.x + PAD_RADIUS_M, pad.z);
+  const rimXm = patch.groundY(pad.x - PAD_RADIUS_M, pad.z);
+  const rimZp = patch.groundY(pad.x, pad.z + PAD_RADIUS_M);
+  const rimZm = patch.groundY(pad.x, pad.z - PAD_RADIUS_M);
+  const tiltX = (rimXp - rimXm) / (2 * PAD_RADIUS_M);
+  const tiltZ = (rimZp - rimZm) / (2 * PAD_RADIUS_M);
+  const planeY = (2 * pad.y + rimXp + rimXm + rimZp + rimZm) / 6;
+  const padPlaneY = (x, z) => planeY + (x - pad.x) * tiltX + (z - pad.z) * tiltZ;
 
   // ---- objects ---------------------------------------------------------------
   const group = new THREE.Group();
@@ -165,7 +175,8 @@ export function createStation(ctx) {
     lowPolyMaterial(),
   );
   padMesh.name = 's5-pad';
-  padMesh.position.set(pad.x, pad.y, pad.z);
+  padMesh.position.set(pad.x, planeY, pad.z);
+  padMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-tiltX, 1, -tiltZ).normalize());
   group.add(padMesh);
 
   // Faceted dome over the pad: what the bubble looks like from outside.
@@ -184,7 +195,8 @@ export function createStation(ctx) {
   // Stand: rack with the tubes, screen above it. Local +z looks at the pad centre.
   const stand = new THREE.Group();
   stand.name = 's5-stand';
-  stand.position.set(pad.x + pad.dirX * 1.15, pad.y + 0.09, pad.z + pad.dirZ * 1.15);
+  stand.position.set(pad.x + pad.dirX * 1.15, 0, pad.z + pad.dirZ * 1.15);
+  stand.position.y = padPlaneY(stand.position.x, stand.position.z) + 0.04; // its foot sits a little into the pad's top
   stand.rotation.y = Math.atan2(-pad.dirX, -pad.dirZ);
   group.add(stand);
   const rackY = 0.92;
@@ -528,11 +540,28 @@ export function createStation(ctx) {
     ];
   }
 
+  // One "what to do now" line for the card. The same string object until something changes.
+  let promptKey = 0;
+  let promptText = '';
+  function prompt() {
+    const logged = tubes.reduce((n, t) => n + (t.logged ? 1 : 0), 0);
+    const key = 1 + logged * 16 + (state.done ? 1 : 0) + (fieldCheck.state.done ? 2 : 0) + (state.immersive ? 4 : 0) + (state.layerOn ? 8 : 0); // a number: no garbage per frame
+    if (key === promptKey) return promptText;
+    promptKey = key;
+    if (state.done) promptText = 'Stop complete.';
+    else if (logged === tubes.length) promptText = 'Take the Field Check on the tablet.';
+    else if (!state.immersive && state.layerOn) promptText = `Stand on the pad for the 360 view. Cores logged: ${logged} of ${tubes.length}.`;
+    else promptText = `Take a tube to log it (grip, G or click). Cores logged: ${logged} of ${tubes.length}.`;
+    return promptText;
+  }
+
   const api = {
     id: station.id,
     title: station.title,
     group,
     activationRadiusM: ACTIVATION_RADIUS_M,
+    radiusM: ACTIVATION_RADIUS_M, // the name the station framework reads
+    prompt,
     cards,
     state,
     pad,
