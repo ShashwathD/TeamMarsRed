@@ -1,17 +1,14 @@
 # Credits
 
 Everything the terrain viewer and the Jezero Marswalk mission show or load, and where it comes
-from. Only sources that are actually used are listed here; the wider list for the original map
-project is in `docs/data-sources.md`.
+from. Only sources that are actually used are listed here. The focused Marswalk source list is in
+`docs/data-sources.md`.
 
-The same credits are shown inside the app: forearm tablet, LAYERS tab, the CREDITS pages after the
-layer chips (`src/mission/credits.js`). The lines that module types itself (image credits, the
-software lines, the AI line, "not real data") are copied from this file word for word; change both
-together.
+The layer sources and notes are shown on the tablet's LAYERS tab. Full project and source notes are
+kept here for reference.
 
 Rule followed here: no licence and no address is given unless this repository's own files state
-it (`docs/data-sources.md`, `DATA_NOTES.md`, `DECISIONS.md`, the `source` fields of the data
-files, or `docs/mission-brief.md`).
+it (`docs/data-sources.md`, the `source` fields of the data files, or `docs/mission-brief.md`).
 
 ## Mars data
 
@@ -63,7 +60,7 @@ above. The other three:
 - **Sample sites and core facts, `data/activities.json`.** NASA Science, "Mars Rock Samples"
   (Perseverance), <https://science.nasa.gov/mission/mars-2020-perseverance/mars-rock-samples/>,
   retrieved 2026-09-29 by the project's pipeline; the five cores used were re-checked against
-  the page on 2026-11-15 (`DECISIONS.md`). Name, number, sol and date sealed, core length, rock
+  the page on 2026-11-15. Name, number, sol and date sealed, core length, rock
   type and current location are NASA's. **Positions are not NASA's**: each core is placed at the
   rover's MMGIS waypoint for a nearby sol, so every sample position is approximate. Coring in the
   app is simulated.
@@ -82,29 +79,25 @@ above. The other three:
 
 ## Fact sources (F1 to F9)
 
-The info cards and the Field Check use only these facts. "As cited in the brief" is the wording of
-`docs/mission-brief.md`; "as shown in the app" is the source line the cards print.
+The info cards and Field Check use these cited sources:
 
-| | As cited in the brief | As shown in the app |
-|---|---|---|
-| F1 | docs/data-sources.md | docs/data-sources.md |
-| F2 | JPL news, 19 Apr 2022 | JPL news, 19 Apr 2022 |
-| F3 | JPL 2022 | JPL news, 19 Apr 2022 |
-| F4 | Farley et al. 2022, Science 377, eabo2196 | Farley et al. 2022, Science 377, eabo2196 |
-| F5 | Williams et al., LPSC 2023 abstract (NTRS 20230000588) | Williams et al., LPSC 2023 abstract (NTRS 20230000588) |
-| F6 | NASA GISS Mars24 / NASA Science | NASA GISS Mars24 / NASA Science |
-| F7 | NASA's Artemis EVA concept of operations (EVA-EXP-0075, 2020), as quoted in the project docs | NASA EVA-EXP-0075 (Artemis EVA concept of operations summary, Feb 2020) |
-| F8 | Space Apps challenge text | Space Apps challenge text |
-| F9 | Photo: MRO HiRISE, 25 cm per pixel. Terrain: USGS HiRISE stereo model, 1 m (shown at 2 m) | MRO HiRISE; USGS HiRISE terrain model |
+| ID | Source shown in the app |
+|---|---|
+| F1 | NASA/JPL Mars 2020 mission |
+| F2 | JPL news, 19 Apr 2022 |
+| F3 | JPL news, 19 Apr 2022 |
+| F4 | Farley et al. 2022, Science 377, eabo2196 |
+| F5 | Williams et al., LPSC 2023 abstract (NTRS 20230000588) |
+| F6 | NASA GISS Mars24 / NASA Science |
+| F7 | NASA EVA-EXP-0075 (Artemis EVA concept of operations summary, Feb 2020) |
+| F8 | Space Apps challenge text |
+| F9 | MRO HiRISE; USGS HiRISE terrain model |
 
 Notes:
 
-- F3: the app treats the brief's "JPL 2022" as the same JPL news item as F2. The brief does not
-  give its address and none is given here.
-- F7: the brief said "Original not opened". It was opened on 2026-11-15
-  (<https://www.nasa.gov/wp-content/uploads/2020/01/topic_1-_eva_lunar_surface_concept_of_operations.pdf>,
-  see `DECISIONS.md`) and the quoted figures (up to 8 h, up to 2 km from the lander, terrain up to
-  20 degrees, for the Moon) were confirmed, so the app cites the document itself.
+- F3 uses the same JPL news item as F2.
+- F7's quoted EVA limits describe a lunar operations concept; Marswalk's EVA duration, slope limit,
+  pace, and stop times are project assumptions.
 - Other card sources: "NASA/JPL MMGIS traverse" and "NASA Science, Mars Rock Samples", both
   described above.
 - Addresses for F2 to F6 are not in this repository, so none are given. Add them before

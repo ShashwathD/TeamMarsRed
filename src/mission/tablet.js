@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PALETTE, css, lowPolyMaterial, mergeParts } from './lowpoly.js';
 import { THEME, createPanel, drawParagraph, fillChamfer, fitText, setFont, wrapLines } from './ui.js';
 import { straightWalkSeconds } from './clock.js';
-import { buildCredits, drawCredits as drawCreditsPage, layoutCredits, refreshCredits } from './credits.js';
+import { buildCredits, refreshCredits } from './credits.js';
 
 // Forearm tablet (brief: SYSTEMS / TABLET).
 //
@@ -84,15 +84,14 @@ const ARM_POSITION = new THREE.Vector3(0, 0, 0.25).addScaledVector(ARM_NORMAL, 0
 
 const HELP = {
   quest: [
-    // Headset control first, the desktop one in parentheses (team controls note).
-    ['L stick (WASD)', 'Walk and strafe. Press it in and hold to sprint (Shift).'],
-    ['R stick (mouse)', 'Turn.'],
-    ['Trigger (click)', 'Select. On open ground hold to aim a teleport, release to jump (T).'],
-    ['Y (Tab)', 'Tablet on or off.'],
-    ['A (E)', 'Scan (at stops 2, 3 and 5).'],
-    ['B (B)', 'Airlock door (at the rover).'],
-    ['Grip (G)', 'Take or stow a sample tube.'],
-    ['X (F)', 'Frame time readout.'],
+    ['L stick', 'Walk and strafe. Press it in and hold to sprint.'],
+    ['R stick', 'Turn.'],
+    ['Trigger', 'Select. On open ground hold to aim a teleport, release to jump.'],
+    ['Y', 'Tablet on or off.'],
+    ['A', 'Scan (at stops 2, 3 and 5).'],
+    ['B', 'Airlock door (at the rover).'],
+    ['Grip', 'Take or stow a sample tube.'],
+    ['X', 'Frame time readout.'],
   ],
   desktop: [
     ['Mouse', 'Click the view to look; Esc frees the mouse. Click to select.'],
@@ -830,29 +829,21 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
     };
   }
 
-  // The full credits (missions covered, every layer with the always-on
-  // backdrop, fact sources, assumptions, software, AI disclosure).
+  // Credits remain available to the mission and cabin; the LAYERS pager is
+  // reserved for the toggleable layer chips.
   const credits = buildCredits(data);
-  const CREDITS_BOX = { x: 28, y: CONTENT_Y, width: W - 56, height: H - 100 - CONTENT_Y, px: MIN_PX };
 
   function drawLayers(ctx) {
     const perPage = 3;
     const list = layers.list;
     const chipPages = Math.ceil(list.length / perPage);
-    // After the chips: the CREDITS pages (credits.js).
-    const pages = chipPages + layoutCredits(ctx, credits, CREDITS_BOX).length;
-    state.creditsFirstPage = chipPages;
+    const pages = chipPages;
     state.layersPage = Math.min(state.layersPage, pages - 1);
     const setPage = (page) => {
       state.layersPage = page;
       dirty = true;
     };
     const missions = data.missionsCovered.join(', ');
-    if (state.layersPage >= chipPages) {
-      const drawn = drawCreditsPage(ctx, credits, state.layersPage - chipPages, CREDITS_BOX);
-      drawPager(ctx, 'layers', state.layersPage, pages, setPage, `CREDITS · ${drawn.section}`);
-      return;
-    }
     const rowH = 212;
     const eyeW = 124;
     const infoW = 76;
@@ -955,7 +946,7 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
     button(ctx, 'help-quest', 16, CONTENT_Y + 4, 300, 84, 'QUEST', () => tablet.setHelpDevice('quest'), { on: state.helpDevice === 'quest' });
     button(ctx, 'help-desktop', 326, CONTENT_Y + 4, 300, 84, 'DESKTOP', () => tablet.setHelpDevice('desktop'), { on: state.helpDevice === 'desktop' });
     ctx.fillStyle = THEME.dim;
-    fitText(ctx, state.helpDevice === 'quest' ? 'Desktop keys in brackets.' : 'Keyboard and mouse.', 650, CONTENT_Y + 60, MIN_PX, W - 670, { minPx: MIN_PX });
+    fitText(ctx, state.helpDevice === 'quest' ? 'Controller controls.' : 'Keyboard and mouse.', 650, CONTENT_Y + 60, MIN_PX, W - 670, { minPx: MIN_PX });
     const rows = HELP[state.helpDevice];
     const keyW = 370;
     let y = CONTENT_Y + 142;
@@ -1170,12 +1161,7 @@ export function createTablet({ mission, ui, scene, camera, renderer, player, xr,
       state.layersPage = page;
       dirty = true;
     },
-    // Opens the first CREDITS page of the LAYERS tab (for a "credits" button elsewhere).
     credits,
-    showCredits() {
-      tablet.setTab('LAYERS');
-      tablet.setLayersPage(Math.ceil(layers.list.length / 3));
-    },
 
     // What teleporting to a stop would cost from where the explorer is now:
     // { seconds, metres, fromIndex, toIndex, offRouteM, way }.

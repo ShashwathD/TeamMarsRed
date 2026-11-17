@@ -9,7 +9,7 @@ mineralogy over and around the Mars2020 landing ellipse with correspondent spect
 signatures", Zenodo doi:10.5281/zenodo.5575824, CC BY 4.0, file jezeroFinal.tif.
 Made from MRO CRISM data (NASA/JPL-Caltech/JHUAPL).
 
-What it does (see DECISIONS.md, "Minerals: data"):
+What it does:
   1. downloads jezeroFinal.tif once into a cache folder OUTSIDE the repo;
   2. reads the georeferencing from the GeoTIFF tags and checks it against M2
      (614 x 751 px, 36 m, equirectangular, R = 3,396,190 m, centre 0 / 0);

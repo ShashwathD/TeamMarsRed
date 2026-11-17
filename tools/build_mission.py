@@ -89,7 +89,7 @@ if walk.get("maxSafeSlopeDeg") != SLOPE_LIMIT_DEG:
 HEIGHT = walk["heightOffsetM"] + raw.astype(np.float64) * walk["heightStepM"]  # row 0 = north
 
 # Slope: central differences on the 2 m grid (one-sided on the patch edge), the
-# same method as the figures in PROGRESS.md / DATA_NOTES.md.
+# same method used for the terrain figures.
 d_south, d_east = np.gradient(HEIGHT, SPACING)
 SLOPE = np.degrees(np.arctan(np.hypot(d_east, d_south)))
 
@@ -277,7 +277,7 @@ for key in PANORAMAS:
             "position": place(x, z),
             "positionBasis": f"rover waypoint site {site_id} drive {drive} (data/stops/m20.json)",
             "samples": sorted(a["number"] for a in activities.values() if a.get("feature") == feature[0]),
-            "credit": "NASA/JPL-Caltech, Mars 2020 Navcam raw images, stitched with the project's pipeline (docs/data-sources.md)",
+            "credit": "NASA/JPL-Caltech, Mars 2020 Perseverance Navcam raw images; stitched by the project",
         }
     )
 
@@ -465,7 +465,7 @@ for leg in legs:
 FACTS = {
     "F1": {
         "text": "Perseverance landed in Jezero crater on 18 Feb 2021 (Octavia E. Butler Landing site).",
-        "source": "docs/data-sources.md",
+        "source": "NASA/JPL Mars 2020 mission",
     },
     "F2": {
         "text": "The delta is a massive fan-shaped collection of rocks and sediment on the crater's western edge, built where a river met a crater lake billions of years ago; it rises about 40 m (130 ft) above the crater floor.",

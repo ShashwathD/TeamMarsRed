@@ -1,6 +1,6 @@
 # NOTE (2026-11-15): the outputs of this module (data/sites/jezero/crism.bin and crism.json)
-# were WRONG and have been deleted. See DECISIONS.md, section "Minerals: data", for why and
-# for what replaced them (tools/build_minerals.py -> data/walk/jezero_delta/minerals.json).
+# were WRONG and have been deleted. The replacement is
+# tools/build_minerals.py -> data/walk/jezero_delta/minerals.json.
 # Do not use this module's output in the app. The code below is left as it was.
 """CRISM mineralogy for Jezero crater: chemical hazard weights per pixel.
 

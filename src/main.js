@@ -210,11 +210,11 @@ async function start() {
   });
 
   setStatus(
-    // Controls: the headset control first, the desktop one in parentheses.
-    `${site}: ` +
-      (mission && mission.tablet ? 'Y (Tab) for the tablet: map, notebook, layers, help. ' : '') +
-      'X (F) for frame time. Trigger (click) to select; hold the trigger (T or right mouse) to aim a teleport, release to jump. ' +
-      'Left stick to move, press it in and hold to sprint (WASD, Shift). Right stick to turn (click the view, then the mouse; Esc frees it)' +
+    'Desktop Controls: ' +
+      (mission && mission.tablet ? 'Tab for the tablet: map, notebook, layers, help. ' : '') +
+      'F for frame time. Click the view to look and select; Esc frees the mouse. ' +
+      'WASD to move; hold Shift to sprint. Hold T or right mouse to aim a teleport, release to jump. ' +
+      (mission && mission.tablet ? 'E to scan; B for the airlock; G to take or stow a sample tube. ' : '') +
       (photo ? '' : ' (no photo for this patch)') +
       surroundNote +
       missionNote,

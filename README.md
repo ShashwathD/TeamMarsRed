@@ -1,161 +1,83 @@
-# TeamMarsRed - Mars terrain walk
+# TeamMarsRed — Marswalk
 
-A static web page (plain HTML + ES modules, no build step) that renders a real
-2 km x 2 km Mars terrain patch at true scale and lets you walk on it.
-Three.js 0.170.0 is loaded from jsDelivr through the import map in `index.html`,
+Marswalk is a browser-based 3D Mars terrain explorer and Jezero surface mission. It uses static
+files and ES modules, so there is no install or build step. Three.js 0.170.0 loads from jsDelivr,
 so an internet connection is needed.
 
-## Run locally
+## Run locally on a computer
 
-From this folder, start any static file server:
+1. Open Terminal in the project folder and start a local web server:
 
-```sh
-python3 -m http.server 8000
-```
+   ```sh
+   cd /path/to/TeamMarsRed
+   python3 -m http.server 8000
+   ```
 
-Open <http://localhost:8000>. Pick the terrain patch with the `site` URL
-parameter, which names a folder under `data/walk/`:
+   If you are already in the project folder, just run `python3 -m http.server 8000`.
 
-- <http://localhost:8000/> or <http://localhost:8000/?site=jezero_delta> (default: the Jezero delta)
-- <http://localhost:8000/?site=jezero> (the Perseverance landing site)
-- <http://localhost:8000/?site=gale> (terrain only: no photo has been stitched for it)
+2. Open <http://localhost:8000> in a desktop browser. The Jezero delta Marswalk mission loads by
+   default. Keep the Terminal window open while using it; press Ctrl+C there to stop the server.
 
-The photo on the ground is one pre-stitched image per patch, `data/walk/<site>/mosaic_16.jpg`.
-To make or refresh it (needs Python 3 with numpy and Pillow):
+### Desktop controls
 
-```sh
-python3 tools/stitch_mosaic.py jezero jezero_delta
-```
+- Click the view to look around and select items; press `Esc` to free the mouse.
+- Move with `W`, `A`, `S`, `D`; hold `Shift` to sprint.
+- Hold `T` or the right mouse button to aim a teleport; release to jump.
+- `Tab` opens or closes the tablet. `E` scans, `B` operates the airlock, and `G` takes or stows a
+  sample tube. `F` toggles the frame-time readout.
 
-## Controls
+## Open in VR
 
-Every VR action has a desktop key. Hints in the app name the headset control first and the
-desktop one in parentheses, for example "Press A (E) to scan". "works" means it passed the desktop
-and headset-emulator tests; nothing has been tried on a real headset.
+WebXR needs a secure HTTPS page when opened from a headset. The simplest option is to publish the
+project with GitHub Pages, then open its HTTPS address in the headset's browser.
 
-The experience starts in the rover cabin: read the briefing card on the hologram table, select
-DEPART, wait about 6 seconds for the airlock light to turn green, then open the door behind you.
-Outside, select the rover (from up to 40 m) or press the door key within 12 m of it (the start spot included) to go back in
-for the debrief.
+1. On GitHub, open [ShashwathD/TeamMarsRed](https://github.com/ShashwathD/TeamMarsRed).
+2. Push the project branch after committing your changes. The current publishing branch is `main`:
 
-| Action | Quest 3S | Desktop | State |
-|---|---|---|---|
-| Look | turn your head | click the page to capture the mouse; `Esc` releases it | works |
-| Walk / strafe | left stick; press the stick in and hold to sprint | `W` `A` `S` `D` or arrow keys; hold `Shift` to run | works |
-| Teleport | hold the right trigger on open ground to aim, release to jump | hold `T` or the right mouse button, release to jump | works |
-| Turn | right stick left / right | mouse, or left / right arrow | works |
-| Select / confirm (tablet buttons, cards, DEPART, coring at the marked rock) | point the right controller, press the trigger | mouse click | works |
-| Tablet on / off | `Y` on the left controller, or look down at your left forearm; while off its dark screen reads "Press Y (Tab) to turn the tablet on" | `Tab` or `Y` | works |
-| Scan at a station | `A` | `E` | works: slope layer at stop 2, rover-path pulse at stop 3, switch ridge at stop 5 |
-| Airlock door | `B`, or point at the door and press the trigger | `B`, or click the door | works (inside: opens the airlock once the light is green; outside: back to the rover) |
-| Take / put back a sample tube (stops 4 and 5) | right grip | `G` | works |
-| Frame-time readout | `X` on the left controller | `F` | works |
+   ```sh
+   git push origin main
+   ```
 
-Without the mission (`?mission=0`, `?tablet=0`, or a site other than `jezero_delta`) the `A`, `B`,
-`X` and `Y` buttons all toggle the frame-time readout. In VR the left stick walks and the right
-stick turns; teleport stays available as well.
+3. In the repository, open **Settings → Pages**. Under **Build and deployment**, choose **Deploy
+   from a branch**, select `main` and `/(root)`, then save.
+4. Wait for the Pages deployment to finish. The site address is
+   <https://shashwathd.github.io/TeamMarsRed/>.
+5. On the headset, connect to Wi-Fi, open its browser, and visit that HTTPS address. Select
+   **ENTER VR** and allow immersive mode if prompted.
 
-## URL flags
+For local VR development, `localhost` in the headset refers to the headset itself. A computer's
+local server needs to be made available to the headset over HTTPS; using the published Pages URL is
+the easiest route for a headset session.
 
-Add them to the address after `?`, joined with `&` (for example `?site=jezero&debug=1`).
+### VR controls
 
-| Flag | What it does | State |
-|---|---|---|
-| `site=<name>` | Terrain patch: a folder under `data/walk/` (`jezero_delta` is the default, `jezero`, `gale`). The mission exists only for `jezero_delta`. | works |
-| `debug=1` | Shows a red pole with an "N" sign 60 m due north of the start point, for checking orientation. | works |
-| `frametime=1` | Starts with the frame-time readout on. | works |
-| `tablet=0` | Mission without the forearm tablet. | works |
-| `mission=0` | Plain terrain viewer: no mission, start at the patch centre. | works |
-| `skipcabin=1` | Start outside on the surface instead of in the rover cabin. | works |
+- Point and hold the right trigger to aim a teleport; release to jump.
+- Walk and strafe with the left stick; press and hold it to sprint. Turn with the right stick.
+- Point the right controller and press the trigger to select. Use `Y` on the left controller for
+  the tablet, `A` to scan, `B` for the airlock, and the right grip to take or stow sample tubes.
+- Press `X` on the left controller to toggle the frame-time readout.
 
-Publishing and headset checks: `PUBLISH.md`. Data and software credits: `CREDITS.md`.
-Screenshots of the delta and where they were taken: `docs/screenshots/`.
+## Other terrain views
 
-## Code layout
+Add a query string to the address:
 
-- `index.html` - page, import map (pins Three.js)
-- `src/main.js` - wires everything together, exposes `window.__mars` for tests
-- `src/data.js` - loads `walk.json` + `dem.bin`, height sampling, lon/lat <-> local metres
-- `src/terrain.js` - walk-patch terrain with level of detail (chunks, fine near the viewer)
-- `src/surround.js` - distant terrain from the coarse grid in `data/sites/`, joined to the patch
-- `src/materials.js` - ground materials: photo, Mars tint, highlight roll-off; switches for the photo, the slope-hazard overlay and the mineral overlay
-- `tools/stitch_mosaic.py` - stitches the photo tiles of a patch into `mosaic_16.jpg`
-- `src/sky.js` - sky gradient, dust haze, lights
-- `src/controls.js` - player rig, keyboard + mouse walking
-- `src/northMarker.js` - north marker for checking orientation (only with `?debug=1`)
-- `src/xr.js` - VR: stick walking and turning, teleport; hooks that let a UI panel take a trigger press or a button
-- `src/frameMeter.js` - frame-time readout drawn in the scene
-- `src/mission/mission.js` - the Marswalk mission (only entry point; loads `data/mission/<site>.json`)
-- `src/mission/route.js` - slope-limited route maths: A* on the 2 m grid, walking time (no Three.js; also run by the tool)
-- `src/mission/ribbon.js` - ribbons draped on the terrain (planned route with moving chevrons, rover traverse)
-- `src/mission/beacons.js` - station beacons with labels that face the viewer
-- `src/mission/lowpoly.js` - shared low-poly palette, material and geometry merge
-- `src/mission/clock.js` - EVA clock: mission time charged for ground covered and station stops, time to walk home, margin
-- `src/mission/hud.js` - helmet HUD worn on the camera: four corner panels, visor brackets, and short flashes at the top centre
-- `src/mission/ui.js` - UI kit: canvas panels with tappable regions, ray picking for controllers and the mouse
-- `src/mission/tablet.js` - forearm tablet: MAP (with teleport to a stop), LOG, LAYERS, HELP
-- `src/mission/credits.js` - the credits as data (from the mission file, plus fixed lines that repeat `CREDITS.md`) and as paged canvas text; used by the tablet's LAYERS tab, and `createCreditsPanel` gives a stand-alone panel
-- `src/mission/layers.js` - data layers the tablet switches: photo, slope hazard, rover path and stops, sample sites, panoramas (the backdrop is always on); `register()` lets a module add a layer (the minerals)
-- `src/mission/minerals.js` - the Minerals layer: loads `data/walk/<site>/minerals.json`, one small texture (one texel per 36 m CRISM pixel) drawn over the walk ground as a translucent overlay, the LAYERS chip with its legend, and the "Orbit says" line for the briefing and station cards
-- `src/mission/mineralState.js` - shared state of the mineral-sampling objective (`mission.minerals`)
-- `src/mission/stations/index.js` - station framework: the list of stations, which one is active (by distance), the station card, who gets a press (tablet and panels, then the station, then teleport), the right-hand hold, completion
-- `src/mission/stations/tube.js` - the one shared low-poly sample tube
-- `src/mission/stations/s2.js` - stop 2, Read the ground: slope layer, DIRECT and PLANNED signs
-- `src/mission/stations/s3.js` - stop 3, Follow the rover: reveals the rover path, scan pulse toward the next stop
-- `src/mission/stations/s4.js` - stop 4, Berea: take the tube, core the marked rock (simulated), notebook entry
-- `src/mission/stations/s5.js` - stop 5, Ridge lookout: panorama pad (360 view of Skinner Ridge or Wildcat Ridge), four sample tubes to log, cards
-- `src/mission/fieldcheck.js` - Field Check: four tap questions on the tablet, score kept for the debrief
-- `src/mission/cabin.js` - rover cabin: briefing hologram, DEPART, airlock door, return marker outside, debrief with route replay
-- `tools/build_mission.py` - builds `data/mission/<site>.json`; plans the route through `tools/route_cli.mjs` (needs Node.js)
+- `?mission=0` — plain terrain viewer without the Marswalk mission.
+- `?skipcabin=1` — start outdoors on the Jezero delta.
+- `?site=jezero` — Perseverance landing-area terrain.
+- `?site=gale` — Gale terrain (no stitched surface photo).
+- `?debug=1` — show the north marker.
+- `?frametime=1` — show the frame-time readout at startup.
+- `?tablet=0` — run the Jezero mission without the tablet.
 
-On the delta patch the mission layer is loaded: a blue route ribbon, the rover's real path in
-orange (on the ground from stop 3 on), and a beacon at each station. The experience starts in the
-rover cabin; the walk outside then starts on the route, 6 m from the start marker (`skipcabin=1`
-starts there directly). Add `mission=0` to the address for the plain terrain viewer.
+Examples: <http://localhost:8000/?mission=0> and
+<https://shashwathd.github.io/TeamMarsRed/?skipcabin=1>.
 
-The tablet: `Tab` or `Y` on desktop (it slides up and frees the mouse; click its buttons); in VR
-it is worn on the left forearm and lights with `Y` on the left controller or by looking down at
-it, and the right controller's ray and trigger tap its buttons. MAP shows the whole route on the
-photo, where you are, and a pin per stop: tap a pin, confirm, and you are taken there for the
-walking time of the route distance. LAYERS has one chip per layer (photo, slope hazard in amber
-10 to 15 degrees and red above 15, rover path, sample sites, panoramas, minerals): the eye switches it, the
-"i" gives a one-line explanation, and the pages after the chips are the CREDITS: missions
-covered, every data layer (the always-on distant terrain too), the fact sources, what is assumed
-or simulated, and the software. The Minerals chip (off at the start) draws the best-match mineral
-groups from orbit over the ground in 36 m pixels, with its legend on the chip: Minerals: Parente, Saranathan and Itoh 2021, Zenodo doi:10.5281/zenodo.5575824, CC BY 4.0. From MRO CRISM data (NASA/JPL-Caltech/JHUAPL). Class names are closest spectral matches. It
-shows which minerals are probably there and says nothing about danger. The rover path is on the map from the start
-but appears on the ground only when stop 3 turns it on. HELP lists the controls, including `E`, `B` and `G` (scan, airlock door, take or stow a sample
-tube). After the four cores at stop 5 are logged the tablet also shows the Field Check. Add `tablet=0` to the address to leave the tablet out
-(the controller buttons then all toggle the frame time, as in the plain viewer; the Field Check
-needs the tablet, so stop 5 cannot be finished in that mode).
+## Project notes and credits
 
-Local frame: x = east, z = south, y = up, in metres, origin at the patch centre
-(y = 0 is the ground height at the centre).
+- [CREDITS.md](CREDITS.md) — project data, software, and image credits.
+- [docs/data-sources.md](docs/data-sources.md) — focused source list for the Marswalk mission.
+- [docs/mission-brief.md](docs/mission-brief.md) — mission scope and design assumptions.
+- [docs/screenshots/](docs/screenshots/) — project screenshots.
 
-`window.__mars` (debug handle): `player` (x, y, z, headingDeg, elevationM),
-`setPose({ x, z, headingDeg, pitchDeg })`, `triangles`, `measureTriangles()`, `groundY(x, z)`.
-With the mission loaded a helmet HUD is fixed to the view (desktop and VR), 1.3 m in front of the
-eyes: top left EVA time left and margin; top right heading and distance to the next station;
-bottom left slope underfoot and time to walk home; bottom right suit oxygen, battery and
-temperature, which are cosmetic and tagged SIM; short flashes at the top centre; thin brackets
-in the corners. The other values are real. Each panel is redrawn only when one of its own values
-changes. On desktop the panels step aside while the tablet is up. The clock does not
-count real seconds: it is charged the walking time of the ground covered (walking, running and
-teleporting cost the same per metre) and 20 minutes per station. See DECISIONS.md, "Mission B3".
-For tests: `mission.clock` (`charge`, `chargeStop`, `moveCharged`, `routeSeconds`,
-`homeFrom`, `running`, `status`), `mission.hud.flash('SLOPE' | 'SCAN' | 'SAMPLE' | 'RETURN',
-{ level })`, `mission.hud.setVisible`, `mission.setNextStation(id)`, `mission.telemetry`.
-
-`window.__mars.mission` (null without a mission): `data`, `values` (card placeholders), `summary`
-(route length, times, slopes), `cardText(id)`, `setLayer('route' | 'traverse' | 'beacons', on)`,
-`beacons`, `spawn`, `planAgain()`, `stats()`.
-Since B4: `setLayer` also takes `'photo' | 'slope' | 'samples' | 'panoramas' | 'backdrop'`;
-`layerSet` (`list`, `credits`, `get`, `set`, `toggle`, `state()`, `sites`, `inWorld(id)`,
-`waitingFor(id)`, `reveal('traverse')` for stop 3), `log` (`add({ title, lines,
-station })`, `entries`), `travelTo(x, z, headingDeg)`, `actions` (`scan`, `door`), `ui` (the panel manager) and `tablet` (`setOpen`, `toggle`, `setTab`, `askJump(id)`,
-`confirmJump()`, `cancelJump()`, `cost(id)`, `targets`, `state`, `panel`, `stats()`,
-`credits`, `showCredits()`).
-Minerals: `setLayer('minerals', on)`, `layerSet.register(layer, { on, can, apply })`, `mission.minerals`
-(`data`, `picks`, `plan`, ...; see `src/mission/mineralState.js`).
-
-Design choices and the measurements behind them are in `DECISIONS.md`.
+The project has been tried on a physical headset. Its mission clock and slope threshold are
+planning assumptions; sample collection is simulated.
